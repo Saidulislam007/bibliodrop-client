@@ -18,13 +18,22 @@ export default function Navbar() {
   // হভার ট্র্যাক করার স্টেট
   const [hoveredPath, setHoveredPath] = useState(null);
 
-  // ডামি ইউজার স্টেট (লজিক সম্পূর্ণ অপরিবর্তিত)
-  const [user, setUser] = useState({
-    name: "Ahmed Rafe",
-    email: "rafe@bibliodrop.com",
-    role: "provider", 
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100",
-  });
+  // 🛠️ রিয়েল অথেনটিকেশন মেকানিজম: ডিফল্ট অবজেক্ট রিমুভ করে null করা হয়েছে।
+  // আপনি টেস্ট করার জন্য null এর জায়গায় ডামি অবজেক্টটি বসিয়ে চেক করতে পারেন।
+  const [user, setUser] = useState(null);
+
+  // টেস্টিং গাইড: আপনি যদি চেক করতে চান লগইন অবস্থায় কেমন দেখায়, 
+  // তাহলে নিচের কমেন্ট আউট করা কোডটি আনকমেন্ট করে দেখতে পারেন:
+  /*
+  useEffect(() => {
+    setUser({
+      name: "Ahmed Rafe",
+      email: "rafe@bibliodrop.com",
+      role: "provider", 
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100",
+    });
+  }, []);
+  */
 
   useEffect(() => {
     setIsOpen(false);
@@ -222,7 +231,6 @@ export default function Navbar() {
                   </Link>
 
                   <Link href="/register">
-                    {/* 🛠️ ফিক্স: এখানে ডেস্কটপ ভিউ বাটন টেক্সট 'Try for free' থেকে পরিবর্তন করে 'Register' করা হয়েছে */}
                     <button className="px-4 py-1.5 text-sm font-bold bg-[#f6f2ee] hover:bg-white text-zinc-950 rounded-lg shadow-md transition-all active:scale-95">
                       Register
                     </button>
