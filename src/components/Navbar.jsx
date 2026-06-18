@@ -14,8 +14,11 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // হভার ট্র্যাক করার স্টেট
+  const [hoveredPath, setHoveredPath] = useState(null);
 
-  // ডামি ইউজার স্টেট (লগআউট টেস্ট করার জন্য আহমেদ রাফে প্রোফাইল দেওয়া আছে)
+  // ডামি ইউজার স্টেট
   const [user, setUser] = useState({
     name: "Ahmed Rafe",
     email: "rafe@bibliodrop.com",
@@ -41,6 +44,9 @@ export default function Navbar() {
   const navLinks = [
     { name: "Home", href: "/" },
     { name: "Browse Books", href: "/browse" },
+    { name: "New Arrivals", href: "/new-arrivals" },
+    { name: "Contact", href: "/contact" },
+    { name: "About", href: "/about" },
   ];
 
   const dashboardLinks = {
@@ -81,36 +87,66 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* ২. ডেস্কটপ নেভিগেশন লিংক */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* ২. ডেস্কটপ নেভিগেশন লিংক (আগের font-sans এবং text-style ফিরিয়ে আনা হয়েছে + Neon Glow Dot) */}
+          <div 
+            className="hidden md:flex items-center gap-1 h-full"
+            onMouseLeave={() => setHoveredPath(null)}
+          >
             {navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+              const isHovered = hoveredPath === link.href;
+
               return (
                 <Link 
                   key={link.href} 
                   href={link.href}
-                  className="relative px-4 py-2 rounded-xl text-sm font-semibold transition-colors duration-200 isolate"
+                  onMouseEnter={() => setHoveredPath(link.href)}
+                  // 🛠️ ফিক্সড: আপনার আগের font-sans এবং প্রিমিয়াম টাইপোগ্রাফি ফিরিয়ে আনা হয়েছে
+                  className="relative px-4 py-2 rounded-xl text-sm font-sans font-semibold transition-colors duration-200 isolate select-none flex flex-col items-center justify-center h-10 group/item"
                 >
-                  <span className={`relative z-10 ${
-                    isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                  {/* লিংক টেক্সট কালার স্টাইল */}
+                  <span className={`relative z-10 whitespace-nowrap transition-colors duration-200 ${
+                    isActive || isHovered 
+                      ? "text-indigo-600 dark:text-indigo-400" 
+                      : "text-slate-600 hover:text-slate-900 dark:text-zinc-400"
                   }`}>
                     {link.name}
                   </span>
                   
-                  {isActive && (
+                  {/* কাস্টম স্লাইডিং ক্যাপসুল ব্যাকগ্রাউন্ড */}
+                  {isHovered && (
                     <motion.div 
-                      layoutId="activeNav"
-                      className="absolute inset-0 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl z-0"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      layoutId="slidingNavPill"
+                      className="absolute inset-0 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-xl z-0"
+                      transition={{ type: "spring", stiffness: 350, damping: 28 }}
                     />
+                  )}
+
+                  {/* একটিভ রুট ব্যাকগ্রাউন্ড লক ফলব্যাক */}
+                  {isActive && !isHovered && (
+                    <div className="absolute inset-0 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-xl z-0" />
+                  )}
+
+                  {/* Neon Glow Dot Indicator */}
+                  {isHovered && (
+                    <motion.div
+                      layoutId="glowDotIndicator"
+                      className="absolute bottom-1 w-1.5 h-1.5 bg-indigo-600 dark:bg-indigo-400 rounded-full z-10 shadow-[0_0_8px_#4f46e5] dark:shadow-[0_0_8px_#818cf8]"
+                      transition={{ type: "spring", stiffness: 380, damping: 25 }}
+                    />
+                  )}
+
+                  {/* একটিভ রুটের জন্য ডটের স্থায়ী পজিশন */}
+                  {isActive && !isHovered && (
+                    <div className="absolute bottom-1 w-1.5 h-1.5 bg-indigo-600 dark:bg-indigo-400 rounded-full z-10 shadow-[0_0_8px_#4f46e5] dark:shadow-[0_0_8px_#818cf8]" />
                   )}
                 </Link>
               );
             })}
           </div>
 
-          {/* ৩. অথেনটিকেশন এরিয়া (ডেস্কটপ - Login ও Register বাটন ফিক্সড) */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* ৩. অথেনটিকেশন এরিয়া */}
+          <div className="hidden md:flex items-center gap-4 flex-shrink-0">
             <AnimatePresence mode="wait">
               {user ? (
                 <motion.div 
@@ -124,8 +160,6 @@ export default function Navbar() {
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex items-center gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none ring-offset-2 focus:ring-2 focus:ring-indigo-500/50"
-                    aria-expanded={isDropdownOpen}
-                    aria-haspopup="true"
                   >
                     <img 
                       src={user.avatar} 
@@ -182,14 +216,12 @@ export default function Navbar() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   className="flex items-center gap-3"
                 >
-                  {/* ১. লগইন বাটন (মার্জিত আউটলাইন টেক্সচার) */}
                   <Link href="/login">
                     <button className="px-4 py-2 text-sm font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-zinc-800 transition-all">
                       Login
                     </button>
                   </Link>
 
-                  {/* ২. রেজিস্টার বাটন (হাইলাইটেড ইন্ডিগো সলিড) */}
                   <Link href="/register">
                     <button className="px-5 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md hover:shadow-indigo-200 transition-all active:scale-95">
                       Register
@@ -205,7 +237,6 @@ export default function Navbar() {
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 text-slate-600 hover:text-slate-900 focus:outline-none"
-              aria-label="Toggle Main Menu"
             >
               {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
             </button>
@@ -214,7 +245,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ৫. মোবাইল ড্রয়ার (Login ও Register বাটন সম্বলিত) */}
+      {/* ৫. মোবাইল ড্রয়ার */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -227,8 +258,9 @@ export default function Navbar() {
               <div className="space-y-1">
                 {navLinks.map((link) => (
                   <Link key={link.href} href={link.href} className="block">
-                    <span className={`block px-3 py-2.5 rounded-xl text-base font-medium ${
-                      pathname === link.href ? "bg-indigo-50 text-indigo-600 font-semibold" : "text-slate-600 dark:text-zinc-300"
+                    {/* মোবাইল ভিউতেও আগের font-sans ফিরিয়ে আনা হয়েছে */}
+                    <span className={`block px-3 py-2.5 rounded-xl text-base font-sans font-semibold ${
+                      pathname === link.href ? "bg-indigo-50 text-indigo-600" : "text-slate-600 dark:text-zinc-300"
                     }`}>
                       {link.name}
                     </span>
@@ -266,7 +298,6 @@ export default function Navbar() {
                   </button>
                 </div>
               ) : (
-                // মোবাইল মোডে বাটন দুটি পাশাপাশি বা চমৎকার ২-কলাম গ্রিডে সাজানো হয়েছে
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <Link href="/login" className="w-full">
                     <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 font-bold rounded-xl hover:bg-slate-50 transition-colors text-sm">
