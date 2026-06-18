@@ -35,20 +35,20 @@ export default function RegisterPage() {
   ];
 
   return (
-    // মেইন কন্টেইনার ব্যাকগ্রাউন্ড পিওর ব্ল্যাক (bg-black)
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans">
       
-      {/* ==================== 🛠️ বাম কলাম: রেসপনসিভ রেজিস্ট্রেশন বক্স (ফর্মটি বামে আনা হয়েছে) ==================== */}
-      <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-10 bg-black text-white order-last lg:order-first">
+      {/* ==================== বাম কলাম: রেসপনসিভ রেজিস্ট্রেশন বক্স (ফর্মটি বামে) ==================== */}
+      {/* 🛠️ ফিক্স ১: মোবাইলের জন্য ডিফল্ট bg-white এবং text-slate-900 করা হয়েছে, যা বড় স্ক্রিনে (lg:) bg-black এবং text-white থাকবে */}
+      <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-10 bg-white lg:bg-black text-slate-900 lg:text-white order-last lg:order-first transition-colors duration-300">
         <motion.div
-          initial={{ opacity: 0, x: -20 }} // ফর্ম বামে আসায় অ্যানিমেশন ডিরেকশন বামে ফিট করা হয়েছে
+          initial={{ opacity: 0, x: -20 }} 
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
           className="w-full max-w-[360px]"
         >
           {/* হেডার টেক্সট */}
           <div className="mb-6">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 lg:text-white tracking-tight">
               Create your account
             </h2>
           </div>
@@ -57,7 +57,7 @@ export default function RegisterPage() {
           <div className="space-y-2.5 mb-5">
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all shadow-sm"
+              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all border border-gray-200 lg:border-none shadow-sm"
             >
               <FcGoogle size={18} />
               <span>Sign up with Google</span>
@@ -74,8 +74,8 @@ export default function RegisterPage() {
 
           {/* ওআর / ডিভাইডার */}
           <div className="relative flex items-center justify-center my-5">
-            <div className="w-full border-t border-zinc-800"></div>
-            <span className="absolute bg-black px-3 text-xs text-zinc-500 font-medium">
+            <div className="w-full border-t border-gray-200 lg:border-zinc-800"></div>
+            <span className="absolute bg-white lg:bg-black px-3 text-xs text-zinc-400 lg:text-zinc-500 font-medium">
               Or register with email
             </span>
           </div>
@@ -91,7 +91,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Full Name"
-                className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-white placeholder:text-zinc-500 font-medium"
+                className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
               />
             </div>
 
@@ -103,7 +103,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email Address"
-                className="w-full px-4 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-white placeholder:text-zinc-500 font-medium"
+                className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
               />
             </div>
 
@@ -112,12 +112,12 @@ export default function RegisterPage() {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full pl-4 pr-10 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-white font-medium cursor-pointer appearance-none"
+                className="w-full pl-4 pr-10 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white font-medium cursor-pointer appearance-none"
               >
                 <option value="reader">Reader / Student (Buy & Borrow)</option>
                 <option value="provider">Librarian / Book Owner (List Books)</option>
               </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-500 pointer-events-none text-xs">▼</span>
+              <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 pointer-events-none text-xs">▼</span>
             </div>
 
             {/* ৪. পাসওয়ার্ড ইনপুট */}
@@ -128,12 +128,12 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full pl-4 pr-11 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-white placeholder:text-zinc-500 font-medium"
+                className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-500 hover:text-zinc-300"
+                className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300"
               >
                 {showPassword ? <FiX size={16} /> : <FiLogIn size={16} />}
               </button>
@@ -151,9 +151,9 @@ export default function RegisterPage() {
 
           {/* ফুটার লিংক */}
           <div className="flex flex-col items-center justify-center gap-3 mt-5 text-sm font-medium">
-            <p className="text-zinc-500 text-xs">
+            <p className="text-slate-400 lg:text-zinc-500 text-xs">
               Already have an account?{" "}
-              <Link href="/login" className="font-bold text-zinc-300 hover:underline">
+              <Link href="/login" className="font-bold text-slate-700 lg:text-zinc-300 hover:underline">
                 Log in
               </Link>
             </p>
@@ -161,8 +161,7 @@ export default function RegisterPage() {
         </motion.div>
       </div>
 
-      {/* ==================== 🛠️ ডান কলাম: প্রমোショナル ব্যানার ও কন্টেন্ট গ্রিড (ব্যানারটি ডানে আনা হয়েছে) ==================== */}
-      {/* ফিক্স: কার্ভের ব্যালেন্স ধরে রাখতে rounded-r (ডানদিকের কার্ভ) পরিবর্তন করে rounded-l-[120px] xl:rounded-l-[150px] (বামদিকের কার্ভ) করা হয়েছে */}
+      {/* ==================== ডান কলাম: প্রমোショナル ব্যানার ও কন্টেন্ট গ্রিড ==================== */}
       <div className="hidden lg:flex lg:col-span-6 flex-col justify-center px-10 xl:px-16 bg-white dark:bg-zinc-900 rounded-l-[120px] xl:rounded-l-[150px] py-10 select-none z-10 order-first lg:order-last">
         <div className="max-w-xl mx-auto w-full">
           <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full">
@@ -175,7 +174,7 @@ export default function RegisterPage() {
             Create an account to connect with local libraries, rent your favorite titles, or list your own collection for others to borrow.
           </p>
 
-          {/* কম্প্যাক্ট ৩-কলাম ইমেজ গ্রিড */}
+          {/* গ্রিড কার্ডস */}
           <div className="grid grid-cols-3 gap-3 mt-8 max-w-md">
             {promoImages.map((item, idx) => (
               <motion.div

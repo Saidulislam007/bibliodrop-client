@@ -36,9 +36,7 @@ export default function LoginPage() {
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans">
       
       {/* ==================== বাম কলাম: প্রমোショナル ব্যানার ও কন্টেন্ট গ্রিড ==================== */}
-      {/* 🛠️ ফিক্স ১: উইডথ ছোট করতে কলাম স্প্যান কমিয়ে 'lg:col-span-6' (বা চাইলে ৫) করা হয়েছে এবং প্যাডিং কমানো হয়েছে */}
       <div className="hidden lg:flex lg:col-span-6 flex-col justify-center px-10 xl:px-16 bg-white dark:bg-zinc-900 rounded-r-[120px] xl:rounded-r-[150px] py-10 select-none z-10">
-        {/* 🛠️ ফিক্স ২: কন্টেন্ট এরিয়ার উইডথ max-w-xl করে কম্প্যাক্ট করা হয়েছে */}
         <div className="max-w-xl mx-auto w-full">
           <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full">
             START YOUR JOURNEY TODAY
@@ -50,7 +48,6 @@ export default function LoginPage() {
             Create an account to connect with local libraries, rent your favorite titles, or list your own collection for others to borrow.
           </p>
 
-          {/* 🛠️ ফিক্স ৩: গ্রিডের ভেতরের ইমেজ কার্ডগুলোর সাইজ সংকুচিত করতে gap কমানো হয়েছে */}
           <div className="grid grid-cols-3 gap-3 mt-8 max-w-md">
             {promoImages.map((item, idx) => (
               <motion.div
@@ -74,17 +71,17 @@ export default function LoginPage() {
       </div>
 
       {/* ==================== ডান কলাম: রেসপনসিভ লগইন বক্স ==================== */}
-      {/* 🛠️ ফিক্স ৪: বামপাশের স্প্যান কমানোয় ডানদিকের স্প্যান বাড়িয়ে 'lg:col-span-6' করা হয়েছে ব্যালেন্সের জন্য */}
-      <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-12 bg-black text-white">
+      {/* 🛠️ ফিক্স: মোবাইলের জন্য ডিফল্ট bg-white এবং টেক্সট text-slate-900 করা হয়েছে, যা বড় স্ক্রিনে (lg:) bg-black এবং text-white হয়ে যাবে */}
+      <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-12 bg-white lg:bg-black text-slate-900 lg:text-white transition-colors duration-300">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-[360px]" // ফর্মের সাইজও কিছুটা স্লিক করা হলো
+          className="w-full max-w-[360px]"
         >
           {/* হেডার টেক্সট */}
           <div className="mb-8">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 lg:text-white tracking-tight">
               Log in to your account
             </h2>
           </div>
@@ -93,7 +90,7 @@ export default function LoginPage() {
           <div className="space-y-3 mb-6">
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all shadow-sm"
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all border border-gray-200 lg:border-none shadow-sm"
             >
               <FcGoogle size={18} />
               <span>Continue with Google</span>
@@ -110,8 +107,8 @@ export default function LoginPage() {
 
           {/* ওআর / ডিভাইডার */}
           <div className="relative flex items-center justify-center my-6">
-            <div className="w-full border-t border-zinc-800"></div>
-            <span className="absolute bg-black px-3 text-xs text-zinc-500 font-medium">
+            <div className="w-full border-t border-gray-200 lg:border-zinc-800"></div>
+            <span className="absolute bg-white lg:bg-black px-3 text-xs text-zinc-400 lg:text-zinc-500 font-medium">
               Or continue with email
             </span>
           </div>
@@ -119,13 +116,14 @@ export default function LoginPage() {
           {/* লগইন ফর্ম এলিমেন্ট */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
+              {/* 🛠️ ইনপুট ফিল্ডের ব্যাকগ্রাউন্ড মোবাইলে হালকা গ্রে (bg-slate-50) এবং ডেক্সটপে ডার্ক (lg:bg-zinc-900) */}
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-white placeholder:text-zinc-500 font-medium"
+                className="w-full px-4 py-3 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
               />
             </div>
 
@@ -136,12 +134,12 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full pl-4 pr-11 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-white placeholder:text-zinc-500 font-medium"
+                className="w-full pl-4 pr-11 py-3 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-500 hover:text-zinc-300"
+                className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300"
               >
                 {showPassword ? <FiX size={16} /> : <FiLogIn size={16} />}
               </button>
@@ -158,12 +156,12 @@ export default function LoginPage() {
 
           {/* ফুটার লিংক গ্রুপ */}
           <div className="flex flex-col items-center justify-center gap-3 mt-6 text-sm font-medium">
-            <Link href="/forgot-password" className="text-xs text-zinc-400 hover:text-indigo-400 transition-colors">
+            <Link href="/forgot-password" className="text-xs text-slate-500 lg:text-zinc-400 hover:text-indigo-600 lg:hover:text-indigo-400 transition-colors">
               Forgot password?
             </Link>
-            <p className="text-zinc-500 text-xs">
+            <p className="text-slate-400 lg:text-zinc-500 text-xs">
               Don't have an account?{" "}
-              <Link href="/register" className="font-bold text-zinc-300 hover:underline">
+              <Link href="/register" className="font-bold text-slate-700 lg:text-zinc-300 hover:underline">
                 Register
               </Link>
             </p>
