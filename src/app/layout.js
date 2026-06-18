@@ -13,24 +13,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "BiblioDrop – Online Book Delivery",
+  title: "BiblioDrop",
   description: "Modern Book Delivery Marketplace",
 };
 
 export default function RootLayout({ children }) {
   return (
-    // ফিক্স: html ট্যাগে explicitly 'light' ক্লাস এবং style কালার-স্কিম যোগ করা হয়েছে
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased light`}
       style={{ colorScheme: "light" }}
     >
-      {/* ফিক্স: বডিতে bg-white এবং text-slate-900 দিয়ে লাইট থিম এনফোর্স করা হয়েছে */}
-      <body className="min-h-full flex flex-col bg-white text-slate-900">
+      {/* 🛠️ ফিক্স: বডিতে স্পষ্টভাবে bg-white locked করা হয়েছে */}
+      <body className="min-h-full flex flex-col bg-white text-slate-900 m-0 p-0">
+        
+        {/* নেভবার মডিউল */}
         <Navbar />
-        <main className="flex-1 flex flex-col bg-white">
+        
+        {/* 🛠️ ফিক্স: মেইন কন্টেইনারে bg-white এবং min-h নিশ্চিত করা হয়েছে 
+            যাতে কন্টেন্ট কম থাকলেও পুরো স্ক্রিন সাদা থাকে */}
+        <main className="flex-1 flex flex-col bg-white w-full">
           {children}
         </main>
+
       </body>
     </html>
   );
