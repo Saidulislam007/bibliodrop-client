@@ -2,21 +2,31 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // ✅ রিডাইরেক্টের জন্য useRouter আনা হয়েছে
-import { motion } from "framer-motion";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { useRouter } from "next/navigation"; // ✅ ১. useRouter ইম্পোর্ট যোগ করা হয়েছে
+import { motion, AnimatePresence } from "framer-motion"; 
+import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from "react-icons/fi"; 
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
-  const router = useRouter(); 
+  const router = useRouter(); // ✅ ২. রাউটার ইনিশিয়েট করা হয়েছে (এরর সমাধান)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ আসল লগইন মেকানিজম ইমপ্লিমেন্ট করা হয়েছে
+  // কাস্টম টোস্ট নোটিফিকেশন স্টেট
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // টোস্ট দেখানোর হেল্পার ফাংশন
+  const showNotification = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -28,20 +38,28 @@ export default function LoginPage() {
       });
 
       if (error) {
-        alert(error.message || "❌ Invalid email or password!");
+        showNotification(error.message || "❌ Invalid email or password!", "error");
         setIsLoading(false);
         return;
       }
 
       console.log("Login Success Data:", data);
-      alert("🎉 Login successful! Welcome back.");
       
-      // ✅ লগইন সফল হলে হোম পেজে নিয়ে যাবে এবং সেশন রিফ্রেশ করবে
+      showNotification("🎉 Login successful! Welcome back.", "success");
+
+      // ফর্ম হার্ড রিসেট এবং স্টেট খালি করা হয়েছে যাতে ইনপুট ফিল্ডে ডেটা আটকে না থাকে
+      e.target.reset();
+      setEmail("");
+      setPassword("");
+      setIsLoading(false);
+
+      // রিডাইরেক্ট লজিক (এখন router ডিফাইন থাকায় নিখুঁত কাজ করবে)
       router.push("/"); 
       router.refresh();
 
     } catch (err) {
       console.error("Login Error:", err);
+      showNotification("❌ Something went wrong!", "error");
       setIsLoading(false);
     }
   };
@@ -51,7 +69,7 @@ export default function LoginPage() {
       console.log("Initiating Google Sign-In...");
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/" // লগইন সফল হলে হোম পেজে নিয়ে যাবে
+        callbackURL: "/" 
       });
     } catch (error) {
       console.error("Google Sign-In Error:", error);
@@ -68,7 +86,31 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans">
+    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans relative">
+      
+      {/* 🔔 FRAMER MOTION CUSTOM TOAST UI */}
+      <div className="absolute top-4 right-4 z-50 pointer-events-none w-full max-w-sm px-4 sm:px-0">
+        <AnimatePresence>
+          {toast.show && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className={`flex items-center gap-3 p-4 rounded-xl shadow-2xl border backdrop-blur-md pointer-events-auto ${
+                toast.type === "success" 
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                  : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+              }`}
+            >
+              {toast.type === "success" ? <FiCheckCircle size={20} /> : <FiAlertCircle size={20} />}
+              <p className="text-xs font-bold tracking-wide leading-relaxed">{toast.message}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* বাম কলাম: প্রমোショナル ব্যানার ও কন্টেন্ট গ্রিড */}
       <div className="hidden lg:flex lg:col-span-6 flex-col justify-center px-10 xl:px-16 bg-white dark:bg-zinc-900 rounded-r-[120px] xl:rounded-r-[150px] py-10 select-none z-10">
         <div className="max-w-xl mx-auto w-full">
           <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full">START YOUR JOURNEY TODAY</span>
@@ -88,6 +130,7 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* ডান কলাম: রেসপনসিভ লগইন বক্স */}
       <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-12 bg-white lg:bg-black text-slate-900 lg:text-white transition-colors duration-300">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-[360px]">
           <div className="mb-8">
@@ -108,12 +151,12 @@ export default function LoginPage() {
             <span className="absolute bg-white lg:bg-black px-3 text-xs text-zinc-400 lg:text-zinc-500 font-medium">Or continue with email</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="none">
             <div className="space-y-1">
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" className="w-full px-4 py-3 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" autoComplete="new-email" className="w-full px-4 py-3 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
             </div>
             <div className="space-y-1 relative">
-              <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full pl-4 pr-11 py-3 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
+              <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete="new-password" className="w-full pl-4 pr-11 py-3 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300">
                 {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
               </button>
@@ -131,6 +174,7 @@ export default function LoginPage() {
           </div>
         </motion.div>
       </div>
+
     </div>
   );
 }

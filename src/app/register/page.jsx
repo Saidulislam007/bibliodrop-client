@@ -2,21 +2,32 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; 
-import { motion } from "framer-motion";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { authClient } from "@/lib/auth-client";
 
 export default function RegisterPage() {
-  const router = useRouter(); 
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("reader"); 
+  const [role, setRole] = useState("reader");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // কাস্টম টোস্ট নোটিফিকেশন স্টেট
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // টোস্ট দেখানোর হেল্পার ফাংশন
+  const showNotification = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
 
   // ✅ ইমেইল ও পাসওয়ার্ড দিয়ে রেজিস্ট্রেশন হ্যান্ডলার
   const handleSubmit = async (e) => {
@@ -25,38 +36,54 @@ export default function RegisterPage() {
 
     try {
       console.log("Sending registration data to Better-Auth...");
-      
+
       const { data, error } = await authClient.signUp.email({
         email: email,
         password: password,
         name: name,
-        metadata: { role: role },
-        disableAutoLogin: true // 1️⃣ ক্লায়েন্ট লেভেলে অটো-লগইন ব্লক করা হলো
+        role: role, // ✅ মেটাডেটা বাদ দিয়ে সরাসরি role পাস করা হলো
+        metadata: {
+          role: role // ✅ ওল্ড স্ট্রাকচার ব্যাকআপের জন্য মেটাডাটায়ও role পাঠানো হলো
+        },
+        disableAutoLogin: true
       });
 
       if (error) {
         console.error("❌ Better-Auth Signup Error Details:", error.message);
-        alert(`❌ Registration failed: ${error.message || "Please check your inputs."}`);
+        showNotification(error.message || "Please check your inputs.", "error");
         setIsLoading(false);
         return;
       }
 
       console.log("Registration Success Data:", data);
-      
-      // 2️⃣ সেফটি মেজার: রেজিস্ট্রেশনের পর ব্রাউজারের লোকাল সেশন ক্যাশ সম্পূর্ণ ক্লিয়ার করা হলো
+
+      // রেজিস্ট্রেশনের পর ব্রাউজারের লোকাল সেশন ক্যাশ সম্পূর্ণ ক্লিয়ার করা হলো
       await authClient.signOut({
         redirect: false
       });
 
-      alert(`🎉 Success! Account created successfully as a ${role === 'reader' ? 'Reader' : 'Librarian'}.`);
-      
-      // 3️⃣ সেশন ফ্রি করে ইউজারকে ফ্রেশভাবে লগইন পেজে পাঠানো হচ্ছে
-      router.push("/login"); 
-      router.refresh();
+      // কাস্টম সাকসেস টোস্ট মেসেজ
+      showNotification(`🎉 Success! Account created successfully as a ${role === 'reader' ? 'Reader' : 'Librarian'}.`, "success");
+
+      // ব্রাউজার যেন ক্যাশ থেকে ডেটা পুশ করতে না পারে, সেজন্য ফর্মটিকে সম্পূর্ণ হার্ড রিসেট করা হলো
+      e.target.reset();
+
+      // রিয়্যাক্ট স্টেটগুলো খালি (Reset) করে দেওয়া হলো
+      setName("");
+      setEmail("");
+      setPassword("");
+      setRole("reader");
+      setIsLoading(false);
+
+      // সেশন ফ্রি করে ইউজারকে ফ্রেশভাবে লগইন পেজে পাঠানো হচ্ছে
+      setTimeout(() => {
+        router.push("/login");
+        router.refresh();
+      }, 2000);
 
     } catch (err) {
       console.error("Catch Block Triggered:", err);
-      alert("❌ A network error occurred. Please check your server status.");
+      showNotification("A network error occurred. Please check your server status.", "error");
       setIsLoading(false);
     }
   };
@@ -66,7 +93,7 @@ export default function RegisterPage() {
       console.log("Initiating Google Sign-Up...");
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "http://localhost:3000/login" 
+        callbackURL: "http://localhost:3000/login"
       });
     } catch (error) {
       console.error("Google Sign-Up Error:", error);
@@ -83,8 +110,29 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans">
-      
+    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans relative">
+
+      {/* 🔔 FRAMER MOTION CUSTOM TOAST UI */}
+      <div className="absolute top-4 right-4 z-50 pointer-events-none w-full max-w-sm px-4 sm:px-0">
+        <AnimatePresence>
+          {toast.show && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className={`flex items-center gap-3 p-4 rounded-xl shadow-2xl border backdrop-blur-md pointer-events-auto ${toast.type === "success"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                  : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                }`}
+            >
+              {toast.type === "success" ? <FiCheckCircle size={20} /> : <FiAlertCircle size={20} />}
+              <p className="text-xs font-bold tracking-wide leading-relaxed">{toast.message}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* বাম কলাম: রেজিস্ট্রেশন ফর্ম */}
       <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-10 bg-white lg:bg-black text-slate-900 lg:text-white order-last lg:order-first transition-colors duration-300">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-[360px]">
@@ -106,22 +154,22 @@ export default function RegisterPage() {
             <span className="absolute bg-white lg:bg-black px-3 text-xs text-zinc-400 lg:text-zinc-500 font-medium">Or register with email</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-3.5" autoComplete="none">
             <div className="space-y-1">
-              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" autoComplete="new-name" className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
             </div>
             <div className="space-y-1">
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" autoComplete="new-email" className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
             </div>
             <div className="space-y-1 relative">
               <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full pl-4 pr-10 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white font-medium cursor-pointer appearance-none">
-                <option value="reader">Reader / Student (Buy & Borrow)</option>
-                <option value="provider">Librarian / Book Owner (List Books)</option>
+                <option value="user">Reader / Student (Buy & Borrow)</option>
+                <option value="librarian">Librarian / Book Owner (List Books)</option>
               </select>
               <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 pointer-events-none text-xs">▼</span>
             </div>
             <div className="space-y-1 relative">
-              <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
+              <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete="new-password" className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300">
                 {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
               </button>

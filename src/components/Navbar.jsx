@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation"; // ✅ রাউটার রিফ্রেশ করার জন্য useRouter আনা হয়েছে
+import { usePathname, useRouter } from "next/navigation"; 
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FiMenu, FiX, FiChevronDown, FiUser, 
   FiBookOpen, FiLogOut, FiLayout, FiShoppingBag,
-  FiLogIn, FiUserPlus
+  FiLogIn, FiUserPlus, FiCheckCircle, FiAlertCircle 
 } from "react-icons/fi";
-import { authClient } from "@/lib/auth-client"; // ✅ Better-Auth ক্লায়েন্ট ইম্পোর্ট করা হয়েছে
+import { authClient } from "@/lib/auth-client"; 
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -18,10 +18,28 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
 
-  // ✅ Better-Auth থেকে রিয়াল সেশন ডেটা নেওয়া হচ্ছে
+  // 🛠️ ফিক্স ১: হাইড্রেশন এরর প্রতিরোধের জন্য মাউন্ট স্টেট যোগ করা হলো
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true); // কম্পোনেন্ট ব্রাউজারে মাউন্ট হলে এটি true হবে
+  }, []);
+
+  // কাস্টম টোস্ট নোটিফিকেশন স্টেট
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // টোস্ট দেখানোর হেল্পার ফাংশন
+  const showNotification = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
+  // Better-Auth থেকে রিয়াল সেশন ডেটা নেওয়া হচ্ছে
   const { data: session } = authClient.useSession();
 
-  // ✅ ইউজারের রোল ডাইনামিকালি ট্র্যাক করা (ডিফল্ট ফলব্যাক হিসেবে 'reader' দেওয়া হয়েছে)
+  // ইউজারের রোল ডাইনামিকালি ট্র্যাক করা (ডিফল্ট ফলব্যাক হিসেবে 'reader' দেওয়া হয়েছে)
   const userRole = session?.user?.role || session?.user?.metadata?.role || "reader";
 
   useEffect(() => {
@@ -62,21 +80,48 @@ export default function Navbar() {
     ],
   };
 
-  // ✅ Better-Auth এর অফিশিয়াল সাইন-আউট মেথড
   const handleLogout = async () => {
     try {
       await authClient.signOut();
       setIsDropdownOpen(false);
-      alert("Logged out successfully!");
-      router.push("/login"); // লগআউটের পর লগইন পেজে রিডাইরেক্ট
+      
+      showNotification("Logged out successfully!", "success");
+      
+      router.push("/login"); 
       router.refresh();
     } catch (error) {
       console.error("Logout Error:", error);
+      showNotification("Logout failed! Please try again.", "error");
     }
   };
 
   return (
-    <div className="sticky top-0 z-50 w-full bg-black dark:bg-zinc-950 px-4 sm:px-6 lg:px-8 py-3 transition-colors duration-300">
+    <div className="sticky top-0 z-50 w-full bg-black dark:bg-zinc-950 px-4 sm:px-6 lg:px-8 py-3 transition-colors duration-300 relative">
+      
+      {/* ==================== 🔔 🛠️ ফিক্স ২: কাস্টম টোস্টকে মাউন্ট প্রটেক্ট করা হলো ==================== */}
+      {isMounted && (
+        <div className="absolute top-20 right-4 z-50 pointer-events-none w-full max-w-sm px-4 sm:px-0">
+          <AnimatePresence>
+            {toast.show && (
+              <motion.div
+                initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className={`flex items-center gap-3 p-4 rounded-xl shadow-2xl border backdrop-blur-md pointer-events-auto ${
+                  toast.type === "success" 
+                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                    : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                }`}
+              >
+                {toast.type === "success" ? <FiCheckCircle size={20} /> : <FiAlertCircle size={20} />}
+                <p className="text-xs font-bold tracking-wide leading-relaxed">{toast.message}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       <nav className="max-w-7xl mx-auto bg-[#0d1117] dark:bg-zinc-900 border border-zinc-800 rounded-[20px] px-6 md:px-8 shadow-[0_10px_30px_rgba(0,0,0,0.15)]">
         <div className="flex items-center justify-between h-16">
           
@@ -145,8 +190,8 @@ export default function Navbar() {
           {/* ৩. অথেনটিকেশন এরিয়া */}
           <div className="hidden md:flex items-center gap-4 flex-shrink-0">
             <AnimatePresence mode="wait">
-              {/* ✅ ডামি ইউজার চেঞ্জ করে session চেক লজিক বসানো হয়েছে */}
-              {session?.user ? (
+              {/* 🛠️ ফিক্স ৩: সার্ভার-ক্লায়েন্ট সেশন অমিল দূর করতে isMounted চেক বসানো হলো */}
+              {isMounted && session?.user ? (
                 <motion.div 
                   key="user-logged-in"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -213,25 +258,28 @@ export default function Navbar() {
                   </AnimatePresence>
                 </motion.div>
               ) : (
-                <motion.div
-                  key="user-logged-out"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex items-center gap-4"
-                >
-                  <Link href="/login">
-                    <button className="text-sm font-semibold text-zinc-300 hover:text-white transition-all">
-                      Login
-                    </button>
-                  </Link>
+                /* 🛠️ সার্ভার রেন্ডারে প্রথমবার শুধুমাত্র এই বাটন স্টেটটিই দেখাবে (লগইন করা না থাকলে) */
+                (!isMounted || !session?.user) && (
+                  <motion.div
+                    key="user-logged-out"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex items-center gap-4"
+                  >
+                    <Link href="/login">
+                      <button className="text-sm font-semibold text-zinc-300 hover:text-white transition-all">
+                        Login
+                      </button>
+                    </Link>
 
-                  <Link href="/register">
-                    <button className="px-4 py-1.5 text-sm font-bold bg-[#f6f2ee] hover:bg-white text-zinc-950 rounded-lg shadow-md transition-all active:scale-95">
-                      Register
-                    </button>
-                  </Link>
-                </motion.div>
+                    <Link href="/register">
+                      <button className="px-4 py-1.5 text-sm font-bold bg-[#f6f2ee] hover:bg-white text-zinc-950 rounded-lg shadow-md transition-all active:scale-95">
+                        Register
+                      </button>
+                    </Link>
+                  </motion.div>
+                )
               )}
             </AnimatePresence>
           </div>
@@ -273,8 +321,7 @@ export default function Navbar() {
 
               <div className="border-t border-zinc-800 my-2" />
 
-              {/* ✅ মোবাইল ড্রয়ারেও ডাইনামিক সেশন চেক অ্যাড করা হয়েছে */}
-              {session?.user ? (
+              {isMounted && session?.user ? (
                 <div className="space-y-2">
                   <div className="px-3 py-2 bg-zinc-900 rounded-xl flex items-center gap-3">
                     {session.user.image ? (
@@ -304,22 +351,24 @@ export default function Navbar() {
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 px-3 py-2 text-red-400 text-xs font-semibold rounded-lg hover:bg-red-500/10 transition-colors"
                   >
-                    <FiLogOut /> Sign Out
+                    <FiLogOut /> Logout
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <Link href="/login" className="w-full">
-                    <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-zinc-700 text-zinc-200 font-bold rounded-xl hover:bg-zinc-800 transition-colors text-sm">
-                      <FiLogIn size={14} /> Login
-                    </button>
-                  </Link>
-                  <Link href="/register" className="w-full">
-                    <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-zinc-950 font-bold rounded-xl shadow-md text-sm">
-                      <FiUserPlus size={14} /> Register
-                    </button>
-                  </Link>
-                </div>
+                (!isMounted || !session?.user) && (
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <Link href="/login" className="w-full">
+                      <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-zinc-700 text-zinc-200 font-bold rounded-xl hover:bg-zinc-800 transition-colors text-sm">
+                        <FiLogIn size={14} /> Login
+                      </button>
+                    </Link>
+                    <Link href="/register" className="w-full">
+                      <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-zinc-950 font-bold rounded-xl shadow-md text-sm">
+                        <FiUserPlus size={14} /> Register
+                      </button>
+                    </Link>
+                  </div>
+                )
               )}
             </div>
           </motion.div>
