@@ -6,8 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FiMenu, FiX, FiChevronDown, FiUser, 
-  FiBookOpen, FiLogOut, FiLayout, FiShoppingBag,
-  FiLogIn, FiUserPlus, FiCheckCircle, FiAlertCircle 
+  FiBookOpen, FiLogOut, FiLayout,
+  FiLogIn, FiUserPlus, FiCheckCircle, FiAlertCircle
 } from "react-icons/fi";
 import { authClient } from "@/lib/auth-client"; 
 
@@ -18,17 +18,16 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState(null);
 
-  // 🛠️ ফিক্স ১: হাইড্রেশন এরর প্রতিরোধের জন্য মাউন্ট স্টেট যোগ করা হলো
+  // হাইড্রেশন এরর প্রতিরোধের জন্য মাউন্ট স্টেট
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true); // কম্পোনেন্ট ব্রাউজারে মাউন্ট হলে এটি true হবে
+    setIsMounted(true);
   }, []);
 
   // কাস্টম টোস্ট নোটিফিকেশন স্টেট
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // টোস্ট দেখানোর হেল্পার ফাংশন
   const showNotification = (message, type = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => {
@@ -36,11 +35,11 @@ export default function Navbar() {
     }, 3000);
   };
 
-  // Better-Auth থেকে রিয়াল সেশন ডেটা নেওয়া হচ্ছে
+  // Better-Auth থেকে রিয়াল সেশন ডেটা নেওয়া
   const { data: session } = authClient.useSession();
 
-  // ইউজারের রোল ডাইনামিকালি ট্র্যাক করা (ডিফল্ট ফলব্যাক হিসেবে 'reader' দেওয়া হয়েছে)
-  const userRole = session?.user?.role || session?.user?.metadata?.role || "reader";
+  // ইউজারের রোল ট্র্যাকিং (ডিফল্ট ফলব্যাক "user")
+  const userRole = session?.user?.role || session?.user?.metadata?.role || "user";
 
   useEffect(() => {
     setIsOpen(false);
@@ -65,19 +64,11 @@ export default function Navbar() {
     { name: "About", href: "/about" },
   ];
 
-  const dashboardLinks = {
-    reader: [
-      { name: "My Profile", href: "/dashboard/profile", icon: <FiUser /> },
-      { name: "My Orders", href: "/dashboard/orders", icon: <FiShoppingBag /> },
-    ],
-    provider: [
-      { name: "Librarian Panel", href: "/dashboard/provider", icon: <FiLayout /> },
-      { name: "Manage Books", href: "/dashboard/books", icon: <FiBookOpen /> },
-    ],
-    admin: [
-      { name: "Admin Core", href: "/dashboard/admin", icon: <FiLayout /> },
-      { name: "All Users", href: "/dashboard/users", icon: <FiUser /> },
-    ],
+  // 🛠️ ডাইনামিক ড্যাশবোর্ড রাউট ডিটারমাইনার ফাংশন
+  const getDashboardRoute = () => {
+    if (userRole === "admin") return "/dashboard/admin";
+    if (userRole === "librarian") return "/dashboard/provider";
+    return "/dashboard/user"; // ডিফল্ট বা সাধারণ ইউজারদের জন্য
   };
 
   const handleLogout = async () => {
@@ -98,7 +89,7 @@ export default function Navbar() {
   return (
     <div className="sticky top-0 z-50 w-full bg-black dark:bg-zinc-950 px-4 sm:px-6 lg:px-8 py-3 transition-colors duration-300 relative">
       
-      {/* ==================== 🔔 🛠️ ফিক্স ২: কাস্টম টোস্টকে মাউন্ট প্রটেক্ট করা হলো ==================== */}
+      {/* 🔔 FRAMER MOTION CUSTOM TOAST UI */}
       {isMounted && (
         <div className="absolute top-20 right-4 z-50 pointer-events-none w-full max-w-sm px-4 sm:px-0">
           <AnimatePresence>
@@ -187,10 +178,9 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* ৩. অথেনটিকেশন এরিয়া */}
+          {/* ৩. অথেনটিকেশন এরিয়া (ডেস্কটপ) */}
           <div className="hidden md:flex items-center gap-4 flex-shrink-0">
             <AnimatePresence mode="wait">
-              {/* 🛠️ ফিক্স ৩: সার্ভার-ক্লায়েন্ট সেশন অমিল দূর করতে isMounted চেক বসানো হলো */}
               {isMounted && session?.user ? (
                 <motion.div 
                   key="user-logged-in"
@@ -230,35 +220,35 @@ export default function Navbar() {
                         transition={{ duration: 0.15 }}
                         className="absolute right-0 mt-3 w-56 origin-top-right rounded-xl bg-[#161b22] p-2 shadow-2xl border border-zinc-800 focus:outline-none"
                       >
-                        <div className="px-3 py-2 mb-1.5">
+                        <div className="px-3 py-2 mb-1">
                           <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Role Base Portal</p>
                           <p className="text-xs font-bold text-indigo-400 capitalize mt-0.5">{userRole}</p>
                         </div>
                         
-                        <div className="space-y-0.5">
-                          {dashboardLinks[userRole]?.map((subLink) => (
-                            <Link key={subLink.href} href={subLink.href} className="w-full">
-                              <button className="flex w-full items-center gap-3 px-3 py-2 text-sm text-zinc-300 rounded-lg hover:bg-zinc-800 hover:text-white transition-colors">
-                                {subLink.icon} {subLink.name}
-                              </button>
-                            </Link>
-                          ))}
+                        {/* 🛠️ ফিক্স: লম্বা লিস্ট বাদ দিয়ে শুধু ড্যাশবোর্ড বাটন রাখা হলো */}
+                        <div className="p-1">
+                          <Link href={getDashboardRoute()} className="block w-full">
+                            <button className="flex w-full items-center gap-3 px-3 py-2 text-sm text-zinc-300 rounded-lg hover:bg-zinc-800 hover:text-white transition-colors">
+                              <FiLayout size={16} /> Dashboard
+                            </button>
+                          </Link>
                         </div>
 
-                        <div className="my-1.5 border-t border-zinc-800" />
+                        <div className="my-1 border-t border-zinc-800" />
                         
-                        <button 
-                          onClick={handleLogout}
-                          className="flex w-full items-center gap-3 px-3 py-2 text-sm text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
-                        >
-                          <FiLogOut /> Logout
-                        </button>
+                        <div className="p-1">
+                          <button 
+                            onClick={handleLogout}
+                            className="flex w-full items-center gap-3 px-3 py-2 text-sm text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
+                          >
+                            <FiLogOut size={16} /> Logout
+                          </button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </motion.div>
               ) : (
-                /* 🛠️ সার্ভার রেন্ডারে প্রথমবার শুধুমাত্র এই বাটন স্টেটটিই দেখাবে (লগইন করা না থাকলে) */
                 (!isMounted || !session?.user) && (
                   <motion.div
                     key="user-logged-out"
@@ -284,7 +274,7 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
 
-          {/* ৪. হ্যামবার্গার বাটন */}
+          {/* ৪. হ্যামবার্গার বাটন (মোবাইল) */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -297,7 +287,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ৫. মোবাইল ড্রয়ার */}
+      {/* ৫. মোবাইল ড্রয়ার মেনু */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -337,22 +327,21 @@ export default function Navbar() {
                     </div>
                   </div>
                   
-                  <div className="space-y-0.5 pl-1">
-                    {dashboardLinks[userRole]?.map((subLink) => (
-                      <Link key={subLink.href} href={subLink.href} className="block">
-                        <span className="flex items-center gap-3 px-3 py-2 text-zinc-400 rounded-lg text-xs font-medium">
-                          {subLink.icon} {subLink.name}
-                        </span>
-                      </Link>
-                    ))}
+                  {/* 🛠️ মোবাইল ড্রয়ারেও সিঙ্গেল ড্যাশবোর্ড বাটন */}
+                  <div className="space-y-1">
+                    <Link href={getDashboardRoute()} className="block">
+                      <span className="flex items-center gap-3 px-3 py-2 text-zinc-300 hover:bg-zinc-800 rounded-lg text-xs font-semibold">
+                        <FiLayout size={14} /> Dashboard
+                      </span>
+                    </Link>
+                    
+                    <button 
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-red-400 text-xs font-semibold rounded-lg hover:bg-red-500/10 transition-colors"
+                    >
+                      <FiLogOut size={14} /> Logout
+                    </button>
                   </div>
-
-                  <button 
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-3 py-2 text-red-400 text-xs font-semibold rounded-lg hover:bg-red-500/10 transition-colors"
-                  >
-                    <FiLogOut /> Logout
-                  </button>
                 </div>
               ) : (
                 (!isMounted || !session?.user) && (
