@@ -2,38 +2,27 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation"; // ✅ রাউটার রিফ্রেশ করার জন্য useRouter আনা হয়েছে
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FiMenu, FiX, FiChevronDown, FiUser, 
   FiBookOpen, FiLogOut, FiLayout, FiShoppingBag,
   FiLogIn, FiUserPlus
 } from "react-icons/fi";
+import { authClient } from "@/lib/auth-client"; // ✅ Better-Auth ক্লায়েন্ট ইম্পোর্ট করা হয়েছে
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
-  // হভার ট্র্যাক করার স্টেট
   const [hoveredPath, setHoveredPath] = useState(null);
 
-  // 🛠️ রিয়েল অথেনটিকেশন মেকানিজম: ডিফল্ট অবজেক্ট রিমুভ করে null করা হয়েছে।
-  // আপনি টেস্ট করার জন্য null এর জায়গায় ডামি অবজেক্টটি বসিয়ে চেক করতে পারেন।
-  const [user, setUser] = useState(null);
+  // ✅ Better-Auth থেকে রিয়াল সেশন ডেটা নেওয়া হচ্ছে
+  const { data: session } = authClient.useSession();
 
-  // টেস্টিং গাইড: আপনি যদি চেক করতে চান লগইন অবস্থায় কেমন দেখায়, 
-  // তাহলে নিচের কমেন্ট আউট করা কোডটি আনকমেন্ট করে দেখতে পারেন:
-  /*
-  useEffect(() => {
-    setUser({
-      name: "Ahmed Rafe",
-      email: "rafe@bibliodrop.com",
-      role: "provider", 
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100",
-    });
-  }, []);
-  */
+  // ✅ ইউজারের রোল ডাইনামিকালি ট্র্যাক করা (ডিফল্ট ফলব্যাক হিসেবে 'reader' দেওয়া হয়েছে)
+  const userRole = session?.user?.role || session?.user?.metadata?.role || "reader";
 
   useEffect(() => {
     setIsOpen(false);
@@ -73,14 +62,20 @@ export default function Navbar() {
     ],
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setIsDropdownOpen(false);
+  // ✅ Better-Auth এর অফিশিয়াল সাইন-আউট মেথড
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut();
+      setIsDropdownOpen(false);
+      alert("Logged out successfully!");
+      router.push("/login"); // লগআউটের পর লগইন পেজে রিডাইরেক্ট
+      router.refresh();
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
   };
 
   return (
-    // ফিক্স: আধা-ট্রান্সপারেন্ট কালার বাদ দিয়ে এখানে সলিড পিওর হোয়াইট (bg-white) লক করা হয়েছে।
-    // এর ফলে পেজের কন্টেন্ট ধূসর হলেও নেভবারের পাশের খালি অংশগুলো সবসময় হোম পেজের মতোই নিখুঁত সাদা থাকবে।
     <div className="sticky top-0 z-50 w-full bg-black dark:bg-zinc-950 px-4 sm:px-6 lg:px-8 py-3 transition-colors duration-300">
       <nav className="max-w-7xl mx-auto bg-[#0d1117] dark:bg-zinc-900 border border-zinc-800 rounded-[20px] px-6 md:px-8 shadow-[0_10px_30px_rgba(0,0,0,0.15)]">
         <div className="flex items-center justify-between h-16">
@@ -114,14 +109,11 @@ export default function Navbar() {
                   className="relative px-4 py-2 rounded-xl text-sm font-sans font-semibold transition-colors duration-200 isolate select-none flex flex-col items-center justify-center h-10"
                 >
                   <span className={`relative z-10 whitespace-nowrap transition-colors duration-200 ${
-                    isActive || isHovered 
-                      ? "text-white" 
-                      : "text-zinc-400"
+                    isActive || isHovered ? "text-white" : "text-zinc-400"
                   }`}>
                     {link.name}
                   </span>
                   
-                  {/* স্লাইডিং ব্যাকগ্রাউন্ড পিল */}
                   {isHovered && (
                     <motion.div 
                       layoutId="slidingNavPill"
@@ -130,12 +122,10 @@ export default function Navbar() {
                     />
                   )}
 
-                  {/* একটিভ রুট ব্যাকগ্রাউন্ড লক ফলব্যাক */}
                   {isActive && !isHovered && (
                     <div className="absolute inset-0 bg-zinc-800/30 rounded-xl z-0" />
                   )}
 
-                  {/* Neon Green Glow Dot Indicator */}
                   {isHovered && (
                     <motion.div
                       layoutId="glowDotIndicator"
@@ -144,7 +134,6 @@ export default function Navbar() {
                     />
                   )}
 
-                  {/* একটিভ রুটের জন্য ডটের স্থায়ী পজিশন */}
                   {isActive && !isHovered && (
                     <div className="absolute bottom-1 w-1.5 h-1.5 bg-emerald-400 rounded-full z-10 shadow-[0_0_8px_#34d399]" />
                   )}
@@ -153,10 +142,11 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* ৩. অথেনটিকেশন এরিয়া */}
+          {/* ৩. অথেনটিকেশন এরিয়া */}
           <div className="hidden md:flex items-center gap-4 flex-shrink-0">
             <AnimatePresence mode="wait">
-              {user ? (
+              {/* ✅ ডামি ইউজার চেঞ্জ করে session চেক লজিক বসানো হয়েছে */}
+              {session?.user ? (
                 <motion.div 
                   key="user-logged-in"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -169,13 +159,19 @@ export default function Navbar() {
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex items-center gap-2 p-1 py-1.5 rounded-full hover:bg-zinc-800/80 transition-colors focus:outline-none focus:ring-1 focus:ring-zinc-700"
                   >
-                    <img 
-                      src={user.avatar} 
-                      alt={user.name} 
-                      className="w-7 h-7 rounded-full object-cover ring-1 ring-zinc-700"
-                    />
+                    {session.user.image ? (
+                      <img 
+                        src={session.user.image} 
+                        alt={session.user.name} 
+                        className="w-7 h-7 rounded-full object-cover ring-1 ring-zinc-700"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300 ring-1 ring-zinc-700">
+                        <FiUser size={14} />
+                      </div>
+                    )}
                     <span className="text-sm font-semibold text-zinc-200 max-w-[100px] truncate">
-                      {user.name}
+                      {session.user.name}
                     </span>
                     <FiChevronDown className={`text-zinc-400 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
                   </button>
@@ -191,11 +187,11 @@ export default function Navbar() {
                       >
                         <div className="px-3 py-2 mb-1.5">
                           <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Role Base Portal</p>
-                          <p className="text-xs font-bold text-indigo-400 capitalize mt-0.5">{user.role}</p>
+                          <p className="text-xs font-bold text-indigo-400 capitalize mt-0.5">{userRole}</p>
                         </div>
                         
                         <div className="space-y-0.5">
-                          {dashboardLinks[user.role]?.map((subLink) => (
+                          {dashboardLinks[userRole]?.map((subLink) => (
                             <Link key={subLink.href} href={subLink.href} className="w-full">
                               <button className="flex w-full items-center gap-3 px-3 py-2 text-sm text-zinc-300 rounded-lg hover:bg-zinc-800 hover:text-white transition-colors">
                                 {subLink.icon} {subLink.name}
@@ -277,18 +273,25 @@ export default function Navbar() {
 
               <div className="border-t border-zinc-800 my-2" />
 
-              {user ? (
+              {/* ✅ মোবাইল ড্রয়ারেও ডাইনামিক সেশন চেক অ্যাড করা হয়েছে */}
+              {session?.user ? (
                 <div className="space-y-2">
                   <div className="px-3 py-2 bg-zinc-900 rounded-xl flex items-center gap-3">
-                    <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full" />
+                    {session.user.image ? (
+                      <img src={session.user.image} alt={session.user.name} className="w-9 h-9 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-300">
+                        <FiUser size={18} />
+                      </div>
+                    )}
                     <div>
-                      <p className="text-xs font-bold text-zinc-200">{user.name}</p>
-                      <p className="text-[10px] text-indigo-400 font-medium capitalize">{user.role} Account</p>
+                      <p className="text-xs font-bold text-zinc-200">{session.user.name}</p>
+                      <p className="text-[10px] text-indigo-400 font-medium capitalize">{userRole} Account</p>
                     </div>
                   </div>
                   
                   <div className="space-y-0.5 pl-1">
-                    {dashboardLinks[user.role]?.map((subLink) => (
+                    {dashboardLinks[userRole]?.map((subLink) => (
                       <Link key={subLink.href} href={subLink.href} className="block">
                         <span className="flex items-center gap-3 px-3 py-2 text-zinc-400 rounded-lg text-xs font-medium">
                           {subLink.icon} {subLink.name}

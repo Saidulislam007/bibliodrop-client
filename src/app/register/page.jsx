@@ -2,12 +2,15 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; 
 import { motion } from "framer-motion";
-import { FiUser, FiMail, FiLock, FiEye, FiEyeOff, FiBriefcase, FiX, FiLogIn } from "react-icons/fi";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
+import { authClient } from "@/lib/auth-client";
 
 export default function RegisterPage() {
+  const router = useRouter(); 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,14 +18,59 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // ✅ ইমেইল ও পাসওয়ার্ড দিয়ে রেজিস্ট্রেশন হ্যান্ডলার
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      console.log("Sending registration data to Better-Auth...");
+      
+      const { data, error } = await authClient.signUp.email({
+        email: email,
+        password: password,
+        name: name,
+        metadata: { role: role },
+        disableAutoLogin: true // 1️⃣ ক্লায়েন্ট লেভেলে অটো-লগইন ব্লক করা হলো
+      });
+
+      if (error) {
+        console.error("❌ Better-Auth Signup Error Details:", error.message);
+        alert(`❌ Registration failed: ${error.message || "Please check your inputs."}`);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Registration Success Data:", data);
+      
+      // 2️⃣ সেফটি মেজার: রেজিস্ট্রেশনের পর ব্রাউজারের লোকাল সেশন ক্যাশ সম্পূর্ণ ক্লিয়ার করা হলো
+      await authClient.signOut({
+        redirect: false
+      });
+
+      alert(`🎉 Success! Account created successfully as a ${role === 'reader' ? 'Reader' : 'Librarian'}.`);
+      
+      // 3️⃣ সেশন ফ্রি করে ইউজারকে ফ্রেশভাবে লগইন পেজে পাঠানো হচ্ছে
+      router.push("/login"); 
+      router.refresh();
+
+    } catch (err) {
+      console.error("Catch Block Triggered:", err);
+      alert("❌ A network error occurred. Please check your server status.");
       setIsLoading(false);
-      alert(`Registration success as ${role}!`);
-    }, 1500);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    try {
+      console.log("Initiating Google Sign-Up...");
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "http://localhost:3000/login" 
+      });
+    } catch (error) {
+      console.error("Google Sign-Up Error:", error);
+    }
   };
 
   const promoImages = [
@@ -37,157 +85,71 @@ export default function RegisterPage() {
   return (
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans">
       
-      {/* ==================== বাম কলাম: রেসপনসিভ রেজিস্ট্রেশন বক্স (ফর্মটি বামে) ==================== */}
-      {/* 🛠️ ফিক্স ১: মোবাইলের জন্য ডিফল্ট bg-white এবং text-slate-900 করা হয়েছে, যা বড় স্ক্রিনে (lg:) bg-black এবং text-white থাকবে */}
+      {/* বাম কলাম: রেজিস্ট্রেশন ফর্ম */}
       <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-10 bg-white lg:bg-black text-slate-900 lg:text-white order-last lg:order-first transition-colors duration-300">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }} 
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-[360px]"
-        >
-          {/* হেডার টেক্সট */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-[360px]">
           <div className="mb-6">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 lg:text-white tracking-tight">
-              Create your account
-            </h2>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 lg:text-white tracking-tight">Create your account</h2>
           </div>
 
-          {/* সোশ্যাল মিডিয়া বাটন গ্রুপ */}
           <div className="space-y-2.5 mb-5">
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all border border-gray-200 lg:border-none shadow-sm"
-            >
-              <FcGoogle size={18} />
-              <span>Sign up with Google</span>
+            <button type="button" onClick={handleGoogleSignUp} className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all border border-gray-200 lg:border-none shadow-sm">
+              <FcGoogle size={18} /> <span>Sign up with Google</span>
             </button>
-
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-xl text-sm transition-all shadow-sm"
-            >
-              <FaFacebook size={18} />
-              <span>Sign up with Facebook</span>
+            <button type="button" className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-xl text-sm transition-all shadow-sm">
+              <FaFacebook size={18} /> <span>Sign up with Facebook</span>
             </button>
           </div>
 
-          {/* ওআর / ডিভাইডার */}
           <div className="relative flex items-center justify-center my-5">
             <div className="w-full border-t border-gray-200 lg:border-zinc-800"></div>
-            <span className="absolute bg-white lg:bg-black px-3 text-xs text-zinc-400 lg:text-zinc-500 font-medium">
-              Or register with email
-            </span>
+            <span className="absolute bg-white lg:bg-black px-3 text-xs text-zinc-400 lg:text-zinc-500 font-medium">Or register with email</span>
           </div>
 
-          {/* রেজিস্ট্রেশন ফর্ম এলিমেন্ট */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
-            
-            {/* ১. নাম ইনপুট */}
             <div className="space-y-1">
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Full Name"
-                className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
-              />
+              <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
             </div>
-
-            {/* ২. ইমেইল ইনপুট */}
             <div className="space-y-1">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email Address"
-                className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
-              />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
             </div>
-
-            {/* ৩. রোল সিলেকশন ড্রপডাউন */}
             <div className="space-y-1 relative">
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full pl-4 pr-10 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white font-medium cursor-pointer appearance-none"
-              >
+              <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full pl-4 pr-10 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white font-medium cursor-pointer appearance-none">
                 <option value="reader">Reader / Student (Buy & Borrow)</option>
                 <option value="provider">Librarian / Book Owner (List Books)</option>
               </select>
               <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 pointer-events-none text-xs">▼</span>
             </div>
-
-            {/* ৪. পাসওয়ার্ড ইনপুট */}
             <div className="space-y-1 relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300"
-              >
-                {showPassword ? <FiX size={16} /> : <FiLogIn size={16} />}
+              <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300">
+                {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
               </button>
             </div>
-
-            {/* ৫. সাবমিট বাটন */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-[#ff3366] hover:bg-[#e62e5c] text-white font-bold rounded-full shadow-md transition-all active:scale-[0.98] disabled:opacity-70 mt-5 text-sm"
-            >
+            <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 py-3 bg-[#ff3366] hover:bg-[#e62e5c] text-white font-bold rounded-full shadow-md transition-all active:scale-[0.98] disabled:opacity-70 mt-5 text-sm">
               {isLoading ? "Creating Account..." : "Register"}
             </button>
           </form>
 
-          {/* ফুটার লিংক */}
           <div className="flex flex-col items-center justify-center gap-3 mt-5 text-sm font-medium">
             <p className="text-slate-400 lg:text-zinc-500 text-xs">
-              Already have an account?{" "}
-              <Link href="/login" className="font-bold text-slate-700 lg:text-zinc-300 hover:underline">
-                Log in
-              </Link>
+              Already have an account? <Link href="/login" className="font-bold text-slate-700 lg:text-zinc-300 hover:underline">Log in</Link>
             </p>
           </div>
         </motion.div>
       </div>
 
-      {/* ==================== ডান কলাম: প্রমোショナル ব্যানার ও কন্টেন্ট গ্রিড ==================== */}
+      {/* ডান কলাম: ব্যানার ইমেজ গ্রিড */}
       <div className="hidden lg:flex lg:col-span-6 flex-col justify-center px-10 xl:px-16 bg-white dark:bg-zinc-900 rounded-l-[120px] xl:rounded-l-[150px] py-10 select-none z-10 order-first lg:order-last">
         <div className="max-w-xl mx-auto w-full">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full">
-            START YOUR JOURNEY TODAY
-          </span>
-          <h1 className="text-3xl xl:text-4xl font-black text-slate-900 dark:text-zinc-50 tracking-tight mt-4 leading-[1.15]">
-            Join The Ultimate <span className="text-indigo-600 dark:text-indigo-400">Book Marketplace</span>
-          </h1>
-          <p className="text-slate-500 dark:text-zinc-400 mt-3 text-xs xl:text-sm leading-relaxed max-w-md">
-            Create an account to connect with local libraries, rent your favorite titles, or list your own collection for others to borrow.
-          </p>
-
-          {/* গ্রিড কার্ডস */}
+          <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full">START YOUR JOURNEY TODAY</span>
+          <h1 className="text-3xl xl:text-4xl font-black text-slate-900 dark:text-zinc-50 tracking-tight mt-4 leading-[1.15]">Join The Ultimate <span className="text-indigo-600 dark:text-indigo-400">Book Marketplace</span></h1>
+          <p className="text-slate-500 dark:text-zinc-400 mt-3 text-xs xl:text-sm leading-relaxed max-w-md">Create an account to connect with local libraries, rent your favorite titles, or list your own collection for others to borrow.</p>
           <div className="grid grid-cols-3 gap-3 mt-8 max-w-md">
             {promoImages.map((item, idx) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.06 }}
-                className="relative aspect-square rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-zinc-800 group"
-              >
+              <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }} className="relative aspect-square rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-zinc-800 group">
                 <img src={item.img} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-[9px] font-bold text-white px-1.5 py-0.5 rounded-md">
-                  {item.date}
-                </div>
+                <div className="absolute top-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-[9px] font-bold text-white px-1.5 py-0.5 rounded-md">{item.date}</div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6">
                   <p className="text-white text-[10px] font-bold truncate">{item.title}</p>
                 </div>
