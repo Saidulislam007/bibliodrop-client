@@ -81,7 +81,7 @@ export default function Navbar() {
   return (
     // ফিক্স: আধা-ট্রান্সপারেন্ট কালার বাদ দিয়ে এখানে সলিড পিওর হোয়াইট (bg-white) লক করা হয়েছে।
     // এর ফলে পেজের কন্টেন্ট ধূসর হলেও নেভবারের পাশের খালি অংশগুলো সবসময় হোম পেজের মতোই নিখুঁত সাদা থাকবে।
-    <div className="sticky top-0 z-50 w-full bg-white dark:bg-zinc-950 px-4 sm:px-6 lg:px-8 py-3 transition-colors duration-300">
+    <div className="sticky top-0 z-50 w-full bg-black dark:bg-zinc-950 px-4 sm:px-6 lg:px-8 py-3 transition-colors duration-300">
       <nav className="max-w-7xl mx-auto bg-[#0d1117] dark:bg-zinc-900 border border-zinc-800 rounded-[20px] px-6 md:px-8 shadow-[0_10px_30px_rgba(0,0,0,0.15)]">
         <div className="flex items-center justify-between h-16">
           
