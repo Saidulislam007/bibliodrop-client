@@ -67,7 +67,7 @@ export default function Navbar() {
   // 🛠️ ডাইনামিক ড্যাশবোর্ড রাউট ডিটারমাইনার ফাংশন
   const getDashboardRoute = () => {
     if (userRole === "admin") return "/dashboard/admin";
-    if (userRole === "librarian") return "/dashboard/provider";
+    if (userRole === "librarian") return "/dashboard/librarian";
     return "/dashboard/user"; // ডিফল্ট বা সাধারণ ইউজারদের জন্য
   };
 
