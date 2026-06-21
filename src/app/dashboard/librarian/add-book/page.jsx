@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation"; 
 import { authClient } from "@/lib/auth-client"; 
 import { createBooks } from "@/lib/actions/books";
 
 export default function AddBook() {
   const { data: session } = authClient.useSession();
+  const router = useRouter(); 
 
   const [formData, setForm] = useState({ 
     title: "", 
     author: "", 
     category: "History", 
     fee: "", 
+    price: "", // ➕ নতুন ফিল্ড: বইয়ের দামের জন্য স্টেট যোগ করা হলো
     stock: "1", 
     description: "" 
   });
@@ -38,6 +41,7 @@ export default function AddBook() {
         description: formData.description,
         category: formData.category,
         fee: parseFloat(formData.fee) || 0, 
+        price: parseFloat(formData.price) || 0, // ➕ আপনার ডাটাবেজের জন্য বুক প্রাইস ফিল্ড নাম্বারে কনভার্ট করে যুক্ত করা হলো
         image: imageUrl, 
         status: "Pending Approval", 
         
@@ -57,7 +61,6 @@ export default function AddBook() {
       const result = await createBooks(bookPayload);
       console.log("Backend Raw Response Log:", result);
 
-      // 🛡️ ফিক্স: মঙ্গোডিবির ড্রাইভার বা কাস্টম সাকসেস মেকানিজম সব ফরম্যাট ট্র্যাক করার জন্য কন্ডিশন আপডেট
       if (
         result?.success || 
         result?._id || 
@@ -65,9 +68,13 @@ export default function AddBook() {
         result?.acknowledged === true
       ) {
         alert("🎉 Success! Book submitted to database. Initial Status: Pending Approval.");
+        
         // ফর্ম সম্পূর্ণ ক্লিয়ার করা হলো
-        setForm({ title: "", author: "", category: "History", fee: "", stock: "1", description: "" });
+        setForm({ title: "", author: "", category: "History", fee: "", price: "", stock: "1", description: "" });
         setImageUrlInput(""); 
+
+        router.push("/dashboard/librarian/inventory");
+        router.refresh(); 
       } else {
         alert(`❌ Failed: ${result?.message || "Something went wrong while saving the book."}`);
       }
@@ -101,11 +108,12 @@ export default function AddBook() {
           </div>
         </div>
 
-        {/* ক্যাটাগরি, ডেলিভারি ফি এবং স্টক কোয়ান্টিটি */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* ক্যাটাগরি, ডেলিভারি ফি, বুক প্রাইস এবং স্টক কোয়ান্টিটি */}
+        {/* 🛠️ গ্রিডটিকে ২ কলাম করে সুন্দর রিলেশন নিয়ে আসা হলো */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-zinc-400 uppercase">Category</label>
-            <select value={formData.category} onChange={e => setForm({...formData, category: e.target.value})} className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white cursor-pointer">
+            <select value={formData.category} onChange={e => setForm({...formData, category: e.target.value})} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white cursor-pointer">
               <option value="History">History</option>
               <option value="Romance">Romance</option>
               <option value="Mystery">Mystery</option>
@@ -113,15 +121,24 @@ export default function AddBook() {
               <option value="Academic">Academic</option>
             </select>
           </div>
-          
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-zinc-400 uppercase">Delivery Fee ($)</label>
-            <input type="number" step="0.01" required value={formData.fee} onChange={e => setForm({...formData, fee: e.target.value})} className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white" placeholder="4.50" />
-          </div>
 
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-zinc-400 uppercase">Stock Copies</label>
-            <input type="number" min="1" required value={formData.stock} onChange={e => setForm({...formData, stock: e.target.value})} className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white" placeholder="5" />
+            <input type="number" min="1" required value={formData.stock} onChange={e => setForm({...formData, stock: e.target.value})} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white" placeholder="5" />
+          </div>
+        </div>
+
+        {/* নতুন রেট অ্যান্ড প্রাইস কলাম রো */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase">Delivery Fee ($)</label>
+            <input type="number" step="0.01" required value={formData.fee} onChange={e => setForm({...formData, fee: e.target.value})} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white" placeholder="4.50" />
+          </div>
+
+          {/* ➕ নতুন ইউআই ইনপুট ফিল্ড: বুক প্রাইস */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase">Book Price ($)</label>
+            <input type="number" step="0.01" required value={formData.price} onChange={e => setForm({...formData, price: e.target.value})} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white" placeholder="15.00" />
           </div>
         </div>
 
