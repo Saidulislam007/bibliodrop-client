@@ -45,3 +45,25 @@ export const deleteUser = async (id) => {
     return { success: false, message: error.message };
   }
 };
+
+
+export const updateUserRole = async (id, updatedData) => {
+  try {
+    const response = await fetch(`${baseUrl}/users/${id}/role`, {
+      method: 'PATCH', // রোলের মতো স্পেসিফিক ফিল্ড মডিফাই করার জন্য PATCH মেথড বেস্ট
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(updatedData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch Error in updateUserRole Action:", error);
+    return { success: false, message: error.message };
+  }
+};

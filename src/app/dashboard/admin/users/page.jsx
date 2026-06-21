@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { FiTrash2, FiLoader } from "react-icons/fi";
-import { getUsers, deleteUser } from "@/lib/api/users"; // 📢 ডিলিট অ্যাকশনটি এখানে ইম্পোর্ট করা হলো
+import { FiTrash2, FiLoader, FiUser } from "react-icons/fi";
+import { getUsers, deleteUser, updateUserRole } from "@/lib/api/users"; // 📢 নতুন অ্যাকশনটি ইম্পোর্ট করা হলো
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -30,25 +30,39 @@ export default function UsersPage() {
     fetchUsersData();
   }, []);
 
-  // রোল চেঞ্জ হ্যান্ডলার
-  const handleToggleRole = (id, currentRole) => {
-    const nextRole = currentRole === "admin" ? "user" : "admin";
-    
-    setUsers(users.map(user => 
-      user._id === id ? { ...user, role: nextRole } : user
-    ));
-    
-    alert(`🎉 User role successfully updated to ${nextRole}`);
+  // 🛡️ রোল চেঞ্জ হ্যান্ডলার (ডাটাবেজ ও ইউআই রিয়েল-টাইম সিঙ্ক)
+  const handleRoleChange = async (userId, targetRole, userName) => {
+    try {
+      // ব্যাকএন্ড অ্যাকশন কল করে ডাটাবেজে রোল আপডেট করা
+      const result = await updateUserRole(userId, { role: targetRole });
+
+      if (
+        result?.success || 
+        result?.modifiedCount > 0 || 
+        result?.acknowledged === true
+      ) {
+        alert(`🎉 Success! ${userName}'s role updated to ${targetRole}.`);
+        
+        // সফলভাবে ডাটাবেজে সেভ হলে ক্লায়েন্ট সাইড UI স্টেট আপডেট করা হলো
+        setUsers(users.map(user => 
+          user._id === userId ? { ...user, role: targetRole } : user
+        ));
+      } else {
+        alert(`❌ Failed: ${result?.message || "Could not update user role."}`);
+      }
+    } catch (error) {
+      console.error("Error during role update:", error);
+      alert("❌ A network error occurred while updating the database.");
+    }
   };
 
-  // 🗑️ ডিলিট ইউজার হ্যান্ডলার (ডাটাবেজ ও ইউআই রিয়েল-টাইম সিঙ্ক)
+  // 🗑️ ইউজার ডিলিট হ্যান্ডলার
   const handleDeleteUser = async (userId, userName) => {
     if (!confirm(`⚠️ WARNING: Are you sure you want to permanently delete account: "${userName}"?`)) {
-      return; // ইউজার ক্যানসেল করলে ফাংশন এখানেই স্টপ হবে
+      return; 
     }
 
     try {
-      // ব্যাকএন্ড ডিলিট অ্যাকশন কল করা হলো
       const result = await deleteUser(userId);
 
       if (
@@ -56,8 +70,7 @@ export default function UsersPage() {
         result?.deletedCount > 0 || 
         result?.acknowledged === true
       ) {
-        alert(`🗑️ Removed! "${userName}" has been successfully deleted from the database.`);
-        // সফলভাবে ডিলিট হলে ইউআই স্টেট থেকে ফিল্টার করে ইনস্ট্যান্ট রিমুভ করা হলো
+        alert(`🗑️ Removed! "${userName}" has been successfully deleted.`);
         setUsers(users.filter(user => user._id !== userId));
       } else {
         alert(`❌ Delete Failed: ${result?.message || "Could not remove user account."}`);
@@ -78,63 +91,82 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">Manage System Users</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Control global user tiers, memberships, and accounts.</p>
-      </div>
-
-      <div className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-5 shadow-md">
+    <div className="space-y-6 max-w-5xl mx-auto p-4">
+      <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           {users.length === 0 ? (
             <div className="text-center py-8 text-zinc-500 text-xs font-medium">
               No registered user records found in the database.
             </div>
           ) : (
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-zinc-800 text-zinc-500 font-bold text-xs uppercase tracking-wider">
-                  <th className="pb-3">User</th>
-                  <th className="pb-3">Role Status</th>
-                  <th className="pb-3 text-right">Access Controls</th>
+                <tr className="border-b border-zinc-800 text-zinc-400 font-bold text-[11px] uppercase tracking-wider">
+                  <th className="pb-4 pl-2">User</th>
+                  <th className="pb-4">Email</th>
+                  <th className="pb-4">Role</th>
+                  <th className="pb-4">Joined</th>
+                  <th className="pb-4 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/40 text-zinc-300 text-xs">
+              <tbody className="divide-y divide-zinc-800/40 text-zinc-300 text-xs sm:text-sm">
                 {users.map((user) => (
-                  <tr key={user._id} className="hover:bg-zinc-800/10 transition-colors">
-                    <td className="py-3.5">
-                      <p className="font-bold text-white">{user.name || "Anonymous User"}</p>
-                      <p className="text-[10px] text-zinc-500">{user.email}</p>
+                  <tr key={user._id} className="hover:bg-zinc-900/30 transition-colors">
+                    
+                    {/* ১. ইউজার কলাম */}
+                    <td className="py-4 pl-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400">
+                          <FiUser size={14} />
+                        </div>
+                        <span className="font-bold text-white tracking-tight">{user.name || "Anonymous User"}</span>
+                      </div>
                     </td>
-                    <td className="py-3.5">
-                      <span className={`font-extrabold tracking-wide uppercase text-[10px] ${
-                        user.role === 'admin' 
-                          ? "text-amber-400" 
-                          : user.role === 'librarian' 
-                          ? "text-indigo-400" 
-                          : "text-zinc-400"
-                      }`}>
-                        {user.role || "user"}
-                      </span>
-                    </td>
-                    <td className="py-3.5 text-right space-x-2 whitespace-nowrap">
-                      <button 
-                        onClick={() => handleToggleRole(user._id, user.role)}
-                        className={`px-2 py-1 rounded-md font-bold text-[10px] border transition-all ${
-                          user.role === 'admin'
-                            ? "bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700"
-                            : "bg-indigo-600/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-600 hover:text-white"
-                        }`}
+
+                    {/* ২. ইমেইল কলাম */}
+                    <td className="py-4 text-zinc-400 font-medium">{user.email}</td>
+
+                    {/* ৩. রোল কলাম */}
+                    <td className="py-4">
+                      <select 
+                        value={user.role || "user"} 
+                        onChange={(e) => handleRoleChange(user._id, e.target.value, user.name || "User")}
+                        className="px-4 py-1.5 bg-white border border-zinc-200 text-zinc-900 rounded-full font-bold text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer shadow-md transition-all appearance-none pr-8 relative style-select"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2318181b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 8px center",
+                          backgroundSize: "14px"
+                        }}
                       >
-                        {user.role === "admin" ? "Demote User" : "Make Admin"}
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteUser(user._id, user.name)}
-                        className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-md transition-colors active:scale-90"
-                      >
-                        <FiTrash2 size={13} />
-                      </button>
+                        <option value="user" className="bg-zinc-900 text-white font-medium">User</option>
+                        <option value="admin" className="bg-zinc-900 text-white font-medium">Admin</option>
+                        <option value="librarian" className="bg-zinc-900 text-white font-medium">Librarian</option>
+                      </select>
                     </td>
+
+                    {/* ৪. জয়েনিং ডেট কলাম */}
+                    <td className="py-4 text-zinc-400 font-medium">
+                      {user.createdAt 
+                        ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : "Jun 20, 2026"
+                      }
+                    </td>
+
+                    {/* ৫. অ্যাকশন কলাম */}
+                    <td className="py-4 text-center">
+                      {user.email !== "said38383742@gmail.com" ? (
+                        <button 
+                          onClick={() => handleDeleteUser(user._id, user.name)}
+                          className="p-2 text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all active:scale-90"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      ) : (
+                        <span className="w-8 h-8 block mx-auto text-[10px] text-zinc-600 font-bold flex items-center justify-center">Owner</span> 
+                      )}
+                    </td>
+
                   </tr>
                 ))}
               </tbody>
