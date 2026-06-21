@@ -24,3 +24,24 @@ export const getUsers = async (email = "", role = "") => {
     return []; // কোনো এরর হলে ক্র্যাশ না করে সেফলি খালি অ্যারে রিটার্ন করবে
   }
 };
+
+
+export const deleteUser = async (id) => {
+  try {
+    const response = await fetch(`${baseUrl}/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch Error in deleteUser Action:", error);
+    return { success: false, message: error.message };
+  }
+};

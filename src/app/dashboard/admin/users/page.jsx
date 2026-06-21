@@ -2,18 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { FiTrash2, FiLoader } from "react-icons/fi";
-import { getUsers } from "@/lib/api/users"; // 📢 আপনার ফাইল পাথ অনুযায়ী এটি চেক করে নিবেন ভাই
+import { getUsers, deleteUser } from "@/lib/api/users"; // 📢 ডিলিট অ্যাকশনটি এখানে ইম্পোর্ট করা হলো
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔄 ডাটাবেজ থেকে getUsers() ফাংশন দিয়ে সব ইউজার ফেচ করা
+  // 🔄 ডাটাবেজ থেকে সব ইউজার ফেচ করা
   useEffect(() => {
     const fetchUsersData = async () => {
       try {
         setLoading(true);
-        const data = await getUsers("", ""); // সব ইউজার একসাথে নিয়ে আসা হচ্ছে
+        const data = await getUsers("", ""); 
 
         if (Array.isArray(data)) {
           setUsers(data);
@@ -30,7 +30,7 @@ export default function UsersPage() {
     fetchUsersData();
   }, []);
 
-  // 🛡️ রোল চেঞ্জ হ্যান্ডলার (ফিউচারে অ্যাকশন এপিআই এর সাথে কানেক্ট করতে পারবেন)
+  // রোল চেঞ্জ হ্যান্ডলার
   const handleToggleRole = (id, currentRole) => {
     const nextRole = currentRole === "admin" ? "user" : "admin";
     
@@ -41,15 +41,33 @@ export default function UsersPage() {
     alert(`🎉 User role successfully updated to ${nextRole}`);
   };
 
-  // 🗑️ ইউজার ডিলিট হ্যান্ডলার
-  const handleDeleteUser = (id, userName) => {
-    if (confirm(`Are you sure you want to delete account: "${userName}"?`)) {
-      setUsers(users.filter(user => user._id !== id));
-      alert("🗑️ User account removed.");
+  // 🗑️ ডিলিট ইউজার হ্যান্ডলার (ডাটাবেজ ও ইউআই রিয়েল-টাইম সিঙ্ক)
+  const handleDeleteUser = async (userId, userName) => {
+    if (!confirm(`⚠️ WARNING: Are you sure you want to permanently delete account: "${userName}"?`)) {
+      return; // ইউজার ক্যানসেল করলে ফাংশন এখানেই স্টপ হবে
+    }
+
+    try {
+      // ব্যাকএন্ড ডিলিট অ্যাকশন কল করা হলো
+      const result = await deleteUser(userId);
+
+      if (
+        result?.success || 
+        result?.deletedCount > 0 || 
+        result?.acknowledged === true
+      ) {
+        alert(`🗑️ Removed! "${userName}" has been successfully deleted from the database.`);
+        // সফলভাবে ডিলিট হলে ইউআই স্টেট থেকে ফিল্টার করে ইনস্ট্যান্ট রিমুভ করা হলো
+        setUsers(users.filter(user => user._id !== userId));
+      } else {
+        alert(`❌ Delete Failed: ${result?.message || "Could not remove user account."}`);
+      }
+    } catch (error) {
+      console.error("Error during user deletion:", error);
+      alert("❌ A network error occurred while updating the database.");
     }
   };
 
-  // রিয়্যাক্ট নোড হাইড্রেশন সেফটি লোডার
   if (loading) {
     return (
       <div className="min-h-[40vh] flex flex-col items-center justify-center gap-2 text-zinc-400">
@@ -112,7 +130,7 @@ export default function UsersPage() {
                       </button>
                       <button 
                         onClick={() => handleDeleteUser(user._id, user.name)}
-                        className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-md transition-colors"
+                        className="p-1.5 text-zinc-500 hover:text-rose-400 rounded-md transition-colors active:scale-90"
                       >
                         <FiTrash2 size={13} />
                       </button>
