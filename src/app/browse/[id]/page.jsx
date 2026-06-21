@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { FiArrowLeft, FiTruck, FiEdit2, FiEyeOff, FiTrash2, FiStar, FiClock } from "react-icons/fi";
+import { FiArrowLeft, FiTruck, FiEdit2, FiEyeOff, FiTrash2, FiStar, FiLogIn, FiHeart } from "react-icons/fi";
 import { authClient } from "@/lib/auth-client";
 import { getBooks } from "@/lib/api/books"; 
-import { deleteBook } from "@/lib/actions/books";
+import { addToWishlist, deleteBook, requestBookDelivery } from "@/lib/actions/books";
 
 export default function BookDetailsPage() {
   const { id } = useParams();
@@ -15,8 +15,13 @@ export default function BookDetailsPage() {
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // স্টেট লজিকস
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false); 
 
-  // রিকোয়ারমেন্ট অনুযায়ী মক রিভিউ ডেটা
+  // মক রিভিউ ডেটা
   const dummyReviews = [
     { id: 1, user: "Ziaan Islam", rating: 5, comment: "Absolutely marvelous scientific briefing. Highly tracking asset!" },
     { id: 2, user: "Md. Saidul", rating: 4, comment: "Clean concept wrapper. The description matches the theme perfectly." }
@@ -45,7 +50,7 @@ export default function BookDetailsPage() {
       setActionLoading(true);
       await deleteBook(book._id);
       alert("🗑️ Asset successfully deleted.");
-      router.push("/browse"); // ডিলিট হওয়ার পর সফলভাবে /browse পেজে রিডাইরেক্ট হবে
+      router.push("/browse");
     } catch (err) {
       console.error(err);
     } finally {
@@ -53,112 +58,265 @@ export default function BookDetailsPage() {
     }
   };
 
-  const handleStripeCheckout = () => {
+  // 🚚 💳 ডাইনামিক ডেলিভারি রিকোয়েস্ট ও প্রসেসিং হ্যান্ডলার ভাই
+  const handleDeliveryRequest = async () => {
     if (!session?.user) {
-      alert("🔒 Authentication required! Please log in to your account to order a book delivery.");
+      alert("🔒 Authentication required! Please log in to request home delivery.");
+      router.push("/login");
       return;
     }
-    alert(`💳 Redirecting to Stripe Checkout to securely process Delivery Fee: $${book.fee?.toFixed(2)}`);
+
+    setIsProcessing(true);
+
+    // ✅ সমাধান ১: ডাটাবেজ পেলোড অবজেক্টে 'price' প্রোপার্টি নিশ্চিতভাবে পাঠানো হচ্ছে ভাই
+    const deliveryPayload = {
+      bookId: book._id,
+      title: book.title,
+      author: book.author,
+      image: book.image,
+      category: book.category,
+      fee: book.fee,
+      price: book.price || (book.fee ? book.fee * 100 : 0), // ডাটাবেজে প্রাইস মিসিং থাকলে ব্যাকআপ ক্যালকুলেশন ভ্যালু যাবে
+      librarianId: book.librarianId,
+      librarianEmail: book.librarianEmail,
+      // 👤 কারেন্ট লগইন থাকা ইউজারের ইনফরমেশন (Better-Auth)
+      userId: session.user.id || session.user._id,
+      userEmail: session.user.email,
+      userName: session.user.name,
+      deliveryStatus: "Pending", // শুরুর স্ট্যাটাস ডিফল্ট পেন্ডিং থাকবে
+      requestedAt: new Date().toISOString()
+    };
+
+    try {
+      // 🟢 আপনার এপিআই মেথড কল করে ব্যাকএন্ডে হিট করা হলো ভাই
+      const result = await requestBookDelivery(deliveryPayload);
+
+      if (result.success || result.insertedId) {
+        alert(`🎉 Success! Home delivery request for "${book.title}" has been placed securely.`);
+      } else {
+        alert(`❌ Failed: ${result.message || "Could not process delivery configuration."}`);
+      }
+    } catch (err) {
+      console.error("Delivery request component crash:", err);
+      alert("❌ A network error occurred while placing the delivery request.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400 text-xs font-bold tracking-wider animate-pulse">SYNCHRONIZING ASSET COMPONENT...</div>;
-  if (!book) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-rose-400 text-xs font-bold">❌ 404: BOOK CATALOG NOT FOUND IN CORE DATABASE.</div>;
+  // 💖 উইশলিস্ট টগল হ্যান্ডলার
+  const handleWishlistToggle = async () => {
+    if (!session?.user) {
+      alert("🔒 Authentication required! Please log in to your account to add a book to your wishlist.");
+      router.push("/login");
+      return;
+    }
+
+    setWishlistLoading(true);
+
+    const wishlistData = {
+      bookId: book._id,
+      title: book.title,
+      author: book.author,
+      description: book.description,
+      category: book.category,
+      fee: book.fee,
+      image: book.image,
+      status: book.status,
+      librarianId: book.librarianId,
+      librarianEmail: book.librarianEmail,
+      price: book.price || (book.fee ? book.fee * 100 : 0), // উইশলিস্টেও সেফটি চেক রাখা হলো ভাই
+      userId: session.user.id || session.user._id,
+      userEmail: session.user.email,
+      addedAt: new Date().toISOString()
+    };
+
+    try {
+      const result = await addToWishlist(wishlistData);
+
+      if (result.success || result.insertedId) {
+        setIsInWishlist(!isInWishlist);
+        alert("❤️ Added to your wishlist successfully!");
+      } else {
+        alert(`❌ Failed: ${result.message || "Could not sync wishlist node asset."}`);
+      }
+    } catch (err) {
+      console.error("Wishlist toggle component crash:", err);
+      alert("❌ A network error occurred while updating wishlist.");
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+  };
+
+  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500 text-xs font-bold tracking-wider animate-pulse">SYNCHRONIZING ASSET COMPONENT...</div>;
+  if (!book) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-rose-500 text-xs font-bold">❌ 404: BOOK CATALOG NOT FOUND IN CORE DATABASE.</div>;
 
   const isLibrarianOwner = session?.user?.email === book.librarianEmail;
   const isOutOfStock = (book.stockQuantity || 0) < 1;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 md:p-12 space-y-10 max-w-5xl mx-auto">
-      <button onClick={() => router.push("/browse")} className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-white transition-colors">
-        <FiArrowLeft size={14} /> Back to Catalog Exploration
+    <div className="max-w-5xl mx-auto p-6 bg-gray-50 min-h-screen font-sans text-gray-800">
+      
+      {/* Back Button */}
+      <button 
+        onClick={() => router.push("/browse")} 
+        className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition font-medium"
+      >
+        <FiArrowLeft /> Back to Catalog Exploration
       </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 bg-zinc-900 border border-zinc-800/60 p-6 md:p-8 rounded-3xl shadow-lg">
-        {/* কভার ইমেজ */}
-        <div className="md:col-span-5 w-full h-[360px] bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden relative shadow-inner">
-          <img src={book.image} alt={book.title} className="w-full h-full object-cover" />
-          {isOutOfStock && (
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] flex items-center justify-center text-xs font-black text-rose-400 uppercase tracking-widest">
-              Checked Out (Unavailable)
-            </div>
-          )}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        
+        {/* Left Side: Book Image */}
+        <div className="relative flex justify-center items-start">
+          <img 
+            src={book.image} 
+            alt={book.title} 
+            className="w-full max-w-sm h-[450px] object-cover rounded-2xl shadow-md border border-gray-100"
+          />
+          <span className="absolute top-4 right-8 bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full border border-green-200">
+            {book.status || (isOutOfStock ? "Out of Stock" : "Available")}
+          </span>
         </div>
 
-        {/* মেটাডাটা */}
-        <div className="md:col-span-7 flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase rounded-md tracking-wider">
-                {book.category}
-              </span>
-              <span className="text-[10px] font-bold flex items-center gap-1 text-zinc-500">
-                <FiClock /> Added: {new Date(book.dateAdded || book.publishedAt || "").toLocaleDateString()}
-              </span>
-            </div>
+        {/* Right Side: Book Information */}
+        <div className="flex flex-col justify-between">
+          <div>
+            <span className="text-purple-600 font-medium text-sm tracking-wide bg-purple-50 px-3 py-1 rounded-md w-fit mb-4 inline-block uppercase">
+              {book.category}
+            </span>
 
-            <div className="space-y-1">
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">{book.title}</h1>
-              <p className="text-xs text-zinc-400 font-medium">Written by <strong className="text-zinc-200">{book.author}</strong></p>
-            </div>
+            <h1 className="text-4xl font-bold text-slate-900 capitalize mb-2">{book.title}</h1>
+            <p className="text-gray-500 font-medium mb-6">
+              by <span className="text-slate-700 font-semibold capitalize">{book.author}</span>
+            </p>
 
-            <div className="border-t border-zinc-800/60 pt-4">
-              <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Briefing Description</h4>
-              <p className="text-xs text-zinc-400 leading-relaxed text-justify">{book.description}</p>
+            <p className="text-gray-600 leading-relaxed mb-8 capitalize text-justify">
+              {book.description}
+            </p>
+
+            <div className="space-y-4 mb-8 text-sm md:text-base">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-600 font-semibold">💲 Delivery Fee:</span>
+                <span className="text-slate-800 font-bold">${book.fee?.toFixed(2) || "0.00"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">👤 Listed by:</span>
+                <span className="text-slate-700 font-medium">{book.librarianEmail}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">📅 Added:</span>
+                <span className="text-slate-700 font-medium">{formatDate(book.dateAdded || book.publishedAt)}</span>
+              </div>
+              
+              {/* ✅ সমাধান ২: UI লেভেলে ডাইনামিক ফলব্যাক মেকানিজম সেট করা হলো ভাই */}
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">💰 Book Price:</span>
+                <span className="text-slate-800 font-semibold">
+                  ${book.price ? book.price : book.fee ? (book.fee * 100).toFixed(0) : "0"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* প্রাইস বক্স ও কন্ডিশনাল বাটন কন্ট্রোল */}
-          <div className="bg-zinc-950/60 border border-zinc-800 p-4 rounded-xl flex items-center justify-between flex-wrap gap-4 mt-4">
-            <div className="flex gap-6 text-xs">
-              <div>
-                <p className="text-zinc-500 font-semibold text-[10px] uppercase">Market Value</p>
-                <p className="text-base font-black text-amber-500">${book.price || "0"}</p>
-              </div>
-              <div>
-                <p className="text-zinc-500 font-semibold text-[10px] uppercase">Delivery Rate</p>
-                <p className="text-base font-black text-emerald-400">${book.fee?.toFixed(2) || "0.00"}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {isLibrarianOwner ? (
-                <div className="flex gap-1.5">
-                  <button className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-lg font-bold text-xs flex items-center gap-1 transition-all"><FiEdit2 size={12}/> Edit</button>
-                  <button className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 rounded-lg font-bold text-xs flex items-center gap-1 transition-all"><FiEyeOff size={12}/> Unpublish</button>
-                  <button onClick={handleDelete} disabled={actionLoading} className="p-2 bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg transition-all"><FiTrash2 size={14}/></button>
-                </div>
-              ) : (
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-4 mt-auto">
+            {!session?.user ? (
+              <div className="flex gap-3 w-full">
                 <button 
-                  onClick={handleStripeCheckout}
-                  disabled={isOutOfStock}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md tracking-wide flex items-center gap-2 transition-all active:scale-[0.98] ${
+                  onClick={() => router.push("/login")} 
+                  className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-6 rounded-xl shadow-sm transition duration-200 flex justify-center items-center gap-2"
+                >
+                  <FiLogIn size={16} /> Please Login to Order
+                </button>
+                <button 
+                  onClick={handleWishlistToggle} 
+                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-xl transition flex justify-center items-center gap-2"
+                >
+                  <FiHeart size={16} /> Add to Wishlist
+                </button>
+              </div>
+            ) : isLibrarianOwner ? (
+              <div className="flex gap-3 w-full">
+                <button className="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition flex justify-center items-center gap-2">
+                  <FiEdit2 size={16}/> Edit Asset
+                </button>
+                <button className="flex-1 border border-gray-300 hover:bg-gray-50 text-slate-700 font-semibold py-3 px-4 rounded-xl transition flex justify-center items-center gap-2">
+                  <FiEyeOff size={16}/> Unpublish
+                </button>
+                <button 
+                  onClick={handleDelete} 
+                  disabled={actionLoading} 
+                  className="p-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition border border-rose-200"
+                >
+                  <FiTrash2 size={18}/>
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-4 w-full">
+                <button 
+                  onClick={handleDeliveryRequest}
+                  disabled={isOutOfStock || isProcessing}
+                  className={`flex-1 min-w-[150px] font-semibold py-3 px-6 rounded-xl shadow-sm transition duration-200 flex justify-center items-center gap-2 text-white ${
                     isOutOfStock 
-                      ? "bg-zinc-800 border border-zinc-700 text-zinc-500 cursor-not-allowed" 
-                      : "bg-indigo-600 hover:bg-indigo-700"
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" 
+                      : isProcessing
+                      ? "bg-amber-500 cursor-wait animate-pulse shadow-md" 
+                      : "bg-amber-500 hover:bg-amber-600"
                   }`}
                 >
-                  <FiTruck size={14} /> {isOutOfStock ? "Unavailable (Checked Out)" : "Request Home Delivery"}
+                  <FiTruck size={16} /> 
+                  {isOutOfStock ? "Unavailable" : isProcessing ? "Processing..." : "Request Home Delivery"}
                 </button>
-              )}
-            </div>
+
+                <button 
+                  onClick={handleWishlistToggle}
+                  disabled={wishlistLoading}
+                  className={`flex-1 min-w-[150px] border font-semibold py-3 px-6 rounded-xl transition duration-200 flex justify-center items-center gap-2 disabled:opacity-50 ${
+                    isInWishlist 
+                      ? "bg-rose-50 border-rose-200 text-rose-600" 
+                      : "border-gray-300 hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  <FiHeart 
+                    size={16} 
+                    className={isInWishlist ? "fill-rose-600 text-rose-600" : "text-gray-700"} 
+                  /> 
+                  {wishlistLoading ? "Processing..." : isInWishlist ? "In Wishlist" : "Add to Wishlist"}
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
       </div>
 
-      {/* রিভিউ সেকশন */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Reader Experiences & Reviews</h3>
+      {/* Reviews Section */}
+      <div className="mt-12 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">Reviews ({dummyReviews.length})</h2>
+        <div className="bg-purple-50 border border-purple-100 text-purple-700 rounded-xl p-4 flex items-center gap-3 text-sm mb-6">
+          <span>📦</span>
+          <p>Only users who have received this book can leave a review.</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {dummyReviews.map((rev) => (
-            <div key={rev.id} className="bg-zinc-900/60 border border-zinc-800 p-4 rounded-2xl space-y-2">
+            <div key={rev.id} className="bg-gray-50 border border-gray-100 p-5 rounded-2xl space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-white">{rev.user}</p>
+                <p className="text-sm font-bold text-slate-800">{rev.user}</p>
                 <div className="flex text-amber-400 gap-0.5">
-                  {[...Array(rev.rating)].map((_, idx) => <FiStar size={11} fill="currentColor" key={idx} />)}
+                  {[...Array(rev.rating)].map((_, idx) => (
+                    <FiStar size={14} fill="currentColor" key={idx} />
+                  ))}
                 </div>
               </div>
-              <p className="text-xs text-zinc-400 font-medium italic">"{rev.comment}"</p>
+              <p className="text-sm text-gray-600 italic">"{rev.comment}"</p>
             </div>
           ))}
         </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiTruck, FiCalendar, FiUser, FiEye, FiSearch } from "react-icons/fi";
+import { FiTruck, FiCalendar, FiUser, FiEye } from "react-icons/fi";
 import { getBooks } from "@/lib/api/books"; 
 
 export default function BrowseBooksPage() {
@@ -26,9 +26,8 @@ export default function BrowseBooksPage() {
         
         let fetchedBooks = Array.isArray(data) ? data : data?.books || [];
         
-        // 🎯 🛡️ শুধুমাত্র "status": "Published" থাকা বইগুলো ফিল্টার করা হলো ভাই
+        // 🛡️ শুধুমাত্র "status": "Published" থাকা বইগুলো ফিল্টার করা হলো ভাই
         const publicCatalog = fetchedBooks.filter(book => book.status === "Published");
-        
         setBooks(publicCatalog);
       } catch (err) {
         console.error("Catalog load error:", err);
@@ -56,7 +55,7 @@ export default function BrowseBooksPage() {
   return (
     <div className="w-full bg-white text-slate-800 font-sans min-h-screen pb-20">
       
-      {/* ==================== ১. টপ হিরো ব্যানার সেকশন (SaaS ডার্ক থিম) ==================== */}
+      {/* ==================== ১. টপ হিরো ব্যানার সেকশন ==================== */}
       <div className="w-full bg-black text-white py-14 sm:py-18 px-4 sm:px-6 lg:px-8 relative overflow-hidden isolate">
         <div className="absolute top-0 right-1/4 w-72 h-72 bg-[#0091ff]/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
         
@@ -90,23 +89,29 @@ export default function BrowseBooksPage() {
       {/* ==================== ২. সার্চ, ফিল্টার এবং সর্ট কন্ট্রোলস ==================== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-xl">
-          <div className="relative flex-1">
-            <FiSearch className="absolute left-3.5 top-3.5 text-zinc-400" size={14} />
+        {/* 🛠️ ফিক্সড সার্চ বার এবং সর্ট ড্রপডাউন গ্রুপ */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1 max-w-xl">
+          
+          {/* 🔍 সার্চ ইনপুট কন্টেইনার (আইকন পজিশন এবং প্যাডিং ফিক্স) */}
+          <div className="relative flex-1 group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-[#0091ff] transition-colors">
+              
+            </div>
             <input 
               type="text" 
               placeholder="Search assets by title or author..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs focus:outline-none focus:border-[#0091ff] focus:bg-white transition-all shadow-inner"
+              className="w-full bg-slate-50 border pl-4 border-slate-200 text-slate-800 rounded-full py-3 pl-11 pr-5 text-xs font-medium focus:outline-none focus:border-[#0091ff] focus:bg-white transition-all shadow-sm"
             />
           </div>
 
+          {/* সর্ট সিলেক্ট বক্স */}
           <div className="relative">
             <select 
               value={sortBy} 
               onChange={(e) => setSortBy(e.target.value)}
-              className="w-full sm:w-44 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl py-2.5 px-3.5 text-xs font-semibold focus:outline-none focus:border-[#0091ff] cursor-pointer transition-all"
+              className="w-full sm:w-44 bg-slate-50 border border-slate-200 text-slate-700 rounded-full py-3 px-4 text-xs font-bold focus:outline-none focus:border-[#0091ff] cursor-pointer transition-all shadow-sm"
             >
               <option value="latest">Newest Added</option>
               <option value="price-low">Price: Low to High</option>
@@ -115,14 +120,15 @@ export default function BrowseBooksPage() {
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 border border-slate-100 p-1.5 rounded-xl w-fit shrink-0">
+        {/* কাস্টম ক্যাটাগরি টগল গ্রুপ */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 border border-slate-100 p-1.5 rounded-xl w-fit shrink-0 shadow-sm">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 selectedCategory === cat
-                  ? "bg-black text-white shadow-md shadow-black/10"
+                  ? "bg-black text-white shadow-md"
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
               }`}
             >
@@ -132,7 +138,7 @@ export default function BrowseBooksPage() {
         </div>
       </div>
 
-      {/* ==================== ৩. বুক কার্ডস গ্রিড ==================== */}
+      {/* ==================== ৩. বুক کارت্স গ্রিড ==================== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
