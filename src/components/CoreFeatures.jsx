@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { FiBookOpen, FiTruck, FiCompass, FiFolder, FiCheckSquare } from "react-icons/fi";
+import { FiTruck, FiCompass, FiFolder, FiCheckSquare } from "react-icons/fi";
 
 export default function CoreFeatures() {
   
