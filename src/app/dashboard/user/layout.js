@@ -15,9 +15,11 @@ export default function UserLayout({ children }) {
   const userRole = session?.user?.role || session?.user?.metadata?.role || "user";
 
   const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => { setIsMounted(true); }, []);
+  useEffect(() => { 
+    setIsMounted(true); 
+  }, []);
 
-  // 🔒 লোডিং এবং রোল প্রোটেকশন গেটওয়ে
+  // 🔒 লোডিং এবং মাউন্ট গেটওয়ে ভ্যালিডেশন
   if (isPending || !isMounted) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white font-sans">
@@ -26,7 +28,7 @@ export default function UserLayout({ children }) {
     );
   }
 
-  // ইউজার বা এডমিন যে কেউ এই ড্যাশবোর্ড দেখতে পারবে (এডমিন চাইলে সব দেখতে পারে)
+  // অ্যাক্সেস কন্ট্রোল
   if (userRole !== "user" && userRole !== "admin") {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-center p-6 font-sans">
@@ -35,7 +37,9 @@ export default function UserLayout({ children }) {
         </div>
         <h1 className="text-2xl font-black text-white">403 - Access Denied</h1>
         <p className="text-zinc-400 text-sm mt-2">Please login with a User account to view this space.</p>
-        <Link href="/login" className="mt-6 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs">Go to Login</Link>
+        <Link href="/login" className="mt-6 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs">
+          Go to Login
+        </Link>
       </div>
     );
   }
@@ -49,22 +53,26 @@ export default function UserLayout({ children }) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex font-sans">
+    <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex font-sans overflow-hidden">
       
-      {/* 🧭 বাম পাশের ইউজার সাইডবার (স্ক্রিনশট অনুযায়ী হুবহু ডিজাইন) */}
-      <aside className="w-64 bg-zinc-900/30 border-r border-zinc-800/60 p-5 flex flex-col gap-6 hidden lg:flex flex-shrink-0">
+      {/* 🧭 বাম পাশের ইউজার সাইডবার */}
+      <aside className="w-64 bg-zinc-900/30 border-r border-zinc-800/60 p-5 flex flex-col gap-6 hidden lg:flex flex-shrink-0 min-h-screen sticky top-0">
         
         {/* ইউজার প্রোফাইল কার্ড উইজেট */}
         <div className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-5 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-3 text-zinc-400 shadow-inner">
+          <div className="w-16 h-16 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-3 text-zinc-400 shadow-inner overflow-hidden">
             {session?.user?.image ? (
-              <img src={session.user.image} alt="User" className="w-full h-full rounded-full object-cover" />
+              <img src={session.user.image} alt="User Profile" className="w-full h-full object-cover" />
             ) : (
               <FiUser size={28} />
             )}
           </div>
-          <h2 className="text-sm font-bold text-white truncate max-w-full">{session?.user?.name || "Dominique Shepard"}</h2>
-          <p className="text-[11px] text-zinc-500 truncate max-w-full mt-0.5">{session?.user?.email || "user@example.com"}</p>
+          <h2 className="text-sm font-bold text-white truncate max-w-full capitalize">
+            {session?.user?.name || "Dominique Shepard"}
+          </h2>
+          <p className="text-[11px] text-zinc-500 truncate max-w-full mt-0.5">
+            {session?.user?.email || "user@example.com"}
+          </p>
           <span className="mt-3 px-4 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold rounded-full capitalize">
             {userRole}
           </span>
@@ -90,7 +98,8 @@ export default function UserLayout({ children }) {
       </aside>
 
       {/* 🖥️ ডানপাশের ডাইনামিক কন্টেন্ট এরিয়া */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full">
+      {/* 🟢 ফিক্সড: children লুপের বাইরে একদম সেফলি রেন্ডার হচ্ছে ভাই */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full h-screen">
         {children}
       </main>
 

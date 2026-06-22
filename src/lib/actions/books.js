@@ -113,3 +113,24 @@ export const updateDeliveryStatus = async (id, statusData) => {
     return { success: false, message: error.message };
   }
 };
+
+
+export const createBookReview = async (reviewData) => {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+    
+    // 🚀 আপনার এক্সপ্রেস ব্যাকএন্ডের /reviews এন্ডপয়েন্টে হিট করা হচ্ছে ভাই
+    const res = await fetch(`${baseUrl}/reviews`, {
+      method: 'POST', // নতুন ডেটা ডাটাবেজে তৈরি করার জন্য POST মেথড ফিক্সড ভাই
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(reviewData) // ফ্রন্টএন্ড থেকে পাঠানো অবজেক্টটি স্ট্রিংফাই করা হলো
+    });
+
+    return await res.json();
+  } catch (error) {
+    console.error("Fetch Error in createBookReview Action:", error);
+    return { success: false, message: error.message };
+  }
+};

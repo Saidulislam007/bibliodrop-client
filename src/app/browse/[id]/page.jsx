@@ -6,8 +6,9 @@ import { FiArrowLeft, FiTruck, FiEdit2, FiEyeOff, FiTrash2, FiStar, FiLogIn, FiH
 import { authClient } from "@/lib/auth-client";
 import { getBooks } from "@/lib/api/books"; 
 import { addToWishlist, deleteBook, requestBookDelivery } from "@/lib/actions/books";
+import BookReviewsContainer from "@/components/BookReviewsContainer";
 
-export default function BookDetailsPage() {
+export default function BookDetailsPage({ params }) {
   const { id } = useParams();
   const router = useRouter();
   const { data: session } = authClient.useSession();
@@ -299,28 +300,7 @@ export default function BookDetailsPage() {
       </div>
 
       {/* Reviews Section */}
-      <div className="mt-12 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">Reviews ({dummyReviews.length})</h2>
-        <div className="bg-purple-50 border border-purple-100 text-purple-700 rounded-xl p-4 flex items-center gap-3 text-sm mb-6">
-          <span>📦</span>
-          <p>Only users who have received this book can leave a review.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {dummyReviews.map((rev) => (
-            <div key={rev.id} className="bg-gray-50 border border-gray-100 p-5 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-slate-800">{rev.user}</p>
-                <div className="flex text-amber-400 gap-0.5">
-                  {[...Array(rev.rating)].map((_, idx) => (
-                    <FiStar size={14} fill="currentColor" key={idx} />
-                  ))}
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 italic">"{rev.comment}"</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      <BookReviewsContainer currentBookId={id} />
 
     </div>
   );

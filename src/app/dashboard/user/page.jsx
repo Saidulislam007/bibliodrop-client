@@ -1,59 +1,132 @@
 "use client";
 
-import React from "react";
-import { FiBookOpen, FiClock, FiDollarSign } from "react-icons/fi";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import React, { useState, useEffect } from "react";
+import { FiLoader } from "react-icons/fi";
+import { authClient } from "@/lib/auth-client";
+
+// 🟢 আপনার মডুলার আর্কিটেকচার অনুযায়ী সব চাইল্ড ফাইল ইম্পোর্ট করা হলো ভাই
+import TotalBooksCard from "@/app/dashboard/_components/user/TotalBooksCard";
+import PendingDeliveriesCard from "@/app/dashboard/_components/user/PendingDeliveriesCard";
+import TotalSpentCard from "@/app/dashboard/_components/user/TotalSpentCard";
+import ReadingChart from "@/app/dashboard/_components/user/ReadingChart";
+
+// 🔍 এপিআই মেথড ইম্পোর্ট
+import { getDeliveriesByEmail } from "@/lib/api/books";
 
 export default function UserOverview() {
-  const stats = [
-    { id: 1, name: "Total Books Read", value: "18 Books", icon: <FiBookOpen size={20} />, color: "bg-blue-500/10 text-blue-400" },
-    { id: 2, name: "Pending Deliveries", value: "2 Orders", icon: <FiClock size={20} />, color: "from-amber-500/10 text-amber-400" },
-    { id: 3, name: "Total Spent on Fees", value: "$42.50", icon: <FiDollarSign size={20} />, color: "from-emerald-500/10 text-emerald-400" },
-  ];
+  const { data: session, isPending: sessionLoading } = authClient.useSession();
+  
+  // ডাইনামিক ডাটা স্টেট সমূহ ভাই
+  const [deliveredCount, setDeliveredCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const readingActivityData = [
-    { name: "Jan", books: 2 }, { name: "Feb", books: 4 },
-    { name: "Mar", books: 1 }, { name: "Apr", books: 5 },
-    { name: "May", books: 3 }, { name: "Jun", books: 3 },
-  ];
+  useEffect(() => {
+    // সেশন লোড হতে থাকলে বা ইউজার সেশন অবজেক্ট না থাকলে ফেচ ব্লক স্কিপ করবে ভাই
+    if (sessionLoading) return;
+    if (!session?.user?.email) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchUserSummaryData = async () => {
+      try {
+        setLoading(true);
+        const currentUserId = session.user.id || session.user._id;
+
+        // ১. ইউজারের ইমেইল দিয়ে ডাটাবেজ থেকে সমস্ত ডেলিভারি ডাটা লোড করা হলো ভাই
+        const data = await getDeliveriesByEmail(session.user.email);
+        
+        if (Array.isArray(data)) {
+          // ২. [🧠 স্ট্রং সিকিউরিটি ফিল্টার] কারেন্ট লগইন ইউজারের ডাটা আলাদা করা হলো
+          const userDeliveries = data.filter(
+            (item) => item.userEmail === session.user.email && item.userId === currentUserId
+          );
+
+          // 🎯 ৩. আপনার রিকোয়ার্ড স্পেসিফিক ফিল্টার: শুধুমাত্র "Delivered" হওয়া ডাটার সংখ্যা
+          const deliveredItems = userDeliveries.filter(item => item.deliveryStatus === "Delivered");
+          
+          // ⏳ ৪. পেন্ডিং রিকোয়েস্ট কাউন্ট
+          const pendingItems = userDeliveries.filter(item => item.deliveryStatus === "Pending");
+          
+          // 💰 🟢 ৫. নতুন ইমপ্লিমেন্টেড লজিক: শুধুমাত্র Delivered হওয়া বইয়ের Fee + Price এর যোগফল ভাই
+          const spent = deliveredItems.reduce((acc, item) => {
+            const itemFee = Number(item.fee) || 0;
+            const itemPrice = Number(item.price) || 0;
+            return acc + itemFee + itemPrice;
+          }, 0);
+
+          // 📊 ৬. চার্টের জন্য মাস ভিত্তিক অবজেক্ট ডেটা প্রিপারেশন লজিক
+          const monthlyData = {};
+          deliveredItems.forEach(item => {
+            if (item.requestedAt) {
+              const month = new Date(item.requestedAt).toLocaleString('en-US', { month: 'short' });
+              monthlyData[month] = (monthlyData[month] || 0) + 1;
+            }
+          });
+
+          // Recharts এর ফরম্যাটে ম্যাপ করা হলো ভাই
+          const formattedChartData = Object.keys(monthlyData).map(month => ({
+            name: month,
+            books: monthlyData[month]
+          }));
+
+          // 🎯 সব স্টেট একসাথে সিঙ্গেল ট্রিক্সে ক্লিন আপডেট করা হলো ভাই
+          setDeliveredCount(deliveredItems.length);
+          setPendingCount(pendingItems.length);
+          setTotalSpent(spent);
+          setChartData(formattedChartData);
+        }
+      } catch (err) {
+        console.error("Error generating user summary assets:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserSummaryData();
+  }, [session?.user?.email, sessionLoading]); // 🟢 ফিক্সড: স্ট্রিং ভ্যালু ডিপেন্ডেন্সি ট্র্যাকিং লুপ ব্রেক করবে
+
+  // ১. লোডিং অবস্থা হ্যান্ডলার
+  if (sessionLoading || loading) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center text-zinc-400 text-xs font-bold gap-2 animate-pulse">
+        <FiLoader className="animate-spin text-indigo-500" size={20} />
+        <span>COMPILING USER INTERFACE METRICS...</span>
+      </div>
+    );
+  }
+
+  // ২. ইউজার লগইন না থাকলে প্রোটেকশন
+  if (!session?.user) {
+    return (
+      <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-6 text-center text-rose-400 font-bold text-xs">
+        🔒 Access Denied. Active session payload required.
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 w-full">
+      {/* হেডার ব্লক - ফাইলে কেবল একবারই থাকবে ভাই */}
       <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">Welcome Back!</h1>
+        <h1 className="text-2xl font-black text-white tracking-tight">
+          Welcome Back, <span className="capitalize text-indigo-400">{session.user.name || "Reader"}</span>!
+        </h1>
         <p className="text-xs text-zinc-400 mt-0.5">Here is your local library reading summary.</p>
       </div>
 
-      {/* Quick Stats */}
+      {/* 📦 ৩টি আলাদা ডেডিকেটেড কম্পোনেন্টে ডাইনামিক স্টেট ডাটা পাস করা হলো ভাই */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        {stats.map((stat) => (
-          <div key={stat.id} className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-5 flex items-center gap-4 shadow-sm">
-            <div className={`p-3 rounded-xl ${stat.color} bg-zinc-800/40`}>
-              {stat.icon}
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">{stat.name}</p>
-              <p className="text-lg font-black text-white mt-0.5">{stat.value}</p>
-            </div>
-          </div>
-        ))}
+        <TotalBooksCard value={`${deliveredCount} Books`} />
+        <PendingDeliveriesCard value={`${pendingCount} Orders`} />
+        <TotalSpentCard value={totalSpent.toFixed(2)} />
       </div>
 
-      {/* চার্ট কন্টেইনার */}
-      <div className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4">Your Monthly Reading Activity</h3>
-        <div className="w-full h-64 text-[10px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={readingActivityData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#222" />
-              <XAxis dataKey="name" stroke="#555" />
-              <YAxis stroke="#555" />
-              <Tooltip contentStyle={{ backgroundColor: "#111", borderColor: "#222" }} />
-              <Bar dataKey="books" fill="#4f46e5" radius={[4, 4, 0, 0]} name="Books Read" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      {/* 📊 ডাইনামিক চার্ট কন্টেইনার কম্পোনেন্ট */}
+      <ReadingChart data={chartData} />
     </div>
   );
 }

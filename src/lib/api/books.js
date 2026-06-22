@@ -45,3 +45,20 @@ export const getDeliveriesByEmail = async (email) => {
     return [];
   }
 };
+
+
+export const getAllReviews = async () => {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+    const res = await fetch(`${baseUrl}/reviews`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    return await res.json();
+  } catch (error) {
+    console.error("Fetch Error in getAllReviews Action:", error);
+    return [];
+  }
+};
