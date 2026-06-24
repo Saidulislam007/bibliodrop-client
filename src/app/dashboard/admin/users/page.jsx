@@ -2,11 +2,46 @@
 
 import React, { useState, useEffect } from "react";
 import { FiTrash2, FiLoader, FiUser } from "react-icons/fi";
-import { getUsers, deleteUser, updateUserRole } from "@/lib/api/users"; // 📢 নতুন অ্যাকশনটি ইম্পোর্ট করা হলো
+import { getUsers, deleteUser, updateUserRole } from "@/lib/api/users";
+import toast, { Toaster } from "react-hot-toast"; // 👈 react-hot-toast ইম্পোর্ট করা হলো ভাই
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 📢 আপনার আগের পেজগুলোর মতো লাইট থিম পিল-শেপ নোটিফিকেশন হ্যান্ডলার ভাই
+  const showNotification = (message, type = "success") => {
+    const toastOptions = {
+      style: {
+        borderRadius: "9999px",
+        background: "#ffffff",
+        color: "#1f2937",
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        fontSize: "14px",
+        fontWeight: "600",
+        padding: "8px 16px",
+      },
+    };
+
+    if (type === "success") {
+      toast.success(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#10b981",
+          secondary: "#ffffff",
+        },
+      });
+    } else {
+      toast.error(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#ef4444",
+          secondary: "#ffffff",
+        },
+      });
+    }
+  };
 
   // 🔄 ডাটাবেজ থেকে সব ইউজার ফেচ করা
   useEffect(() => {
@@ -33,7 +68,6 @@ export default function UsersPage() {
   // 🛡️ রোল চেঞ্জ হ্যান্ডলার (ডাটাবেজ ও ইউআই রিয়েল-টাইম সিঙ্ক)
   const handleRoleChange = async (userId, targetRole, userName) => {
     try {
-      // ব্যাকএন্ড অ্যাকশন কল করে ডাটাবেজে রোল আপডেট করা
       const result = await updateUserRole(userId, { role: targetRole });
 
       if (
@@ -41,27 +75,22 @@ export default function UsersPage() {
         result?.modifiedCount > 0 || 
         result?.acknowledged === true
       ) {
-        alert(`🎉 Success! ${userName}'s role updated to ${targetRole}.`);
+        showNotification(`🎉 Success! ${userName}'s role updated to ${targetRole}.`, "success");
         
-        // সফলভাবে ডাটাবেজে সেভ হলে ক্লায়েন্ট সাইড UI স্টেট আপডেট করা হলো
         setUsers(users.map(user => 
           user._id === userId ? { ...user, role: targetRole } : user
         ));
       } else {
-        alert(`❌ Failed: ${result?.message || "Could not update user role."}`);
+        showNotification(`❌ Failed: ${result?.message || "Could not update user role."}`, "error");
       }
     } catch (error) {
       console.error("Error during role update:", error);
-      alert("❌ A network error occurred while updating the database.");
+      showNotification("❌ A network error occurred while updating the database.", "error");
     }
   };
 
-  // 🗑️ ইউজার ডিলিট হ্যান্ডলার
-  const handleDeleteUser = async (userId, userName) => {
-    if (!confirm(`⚠️ WARNING: Are you sure you want to permanently delete account: "${userName}"?`)) {
-      return; 
-    }
-
+  // 🗑️ ইউজার ডিলিট লজিক (ডাটাবেজ ও ইউআই সিঙ্ক)
+  const handleActualDelete = async (userId, userName) => {
     try {
       const result = await deleteUser(userId);
 
@@ -70,15 +99,57 @@ export default function UsersPage() {
         result?.deletedCount > 0 || 
         result?.acknowledged === true
       ) {
-        alert(`🗑️ Removed! "${userName}" has been successfully deleted.`);
+        showNotification(`🗑️ Removed! "${userName}" has been successfully deleted.`, "success");
         setUsers(users.filter(user => user._id !== userId));
       } else {
-        alert(`❌ Delete Failed: ${result?.message || "Could not remove user account."}`);
+        showNotification(`❌ Delete Failed: ${result?.message || "Could not remove user account."}`, "error");
       }
     } catch (error) {
       console.error("Error during user deletion:", error);
-      alert("❌ A network error occurred while updating the database.");
+      showNotification("❌ A network error occurred while updating the database.", "error");
     }
+  };
+
+  // ⚠️ টেইলউইন্ড লেআউট ও গ্রিড ফিক্সড কনফার্মেশন ডায়ালগ টোস্ট ভাই (বাটন হাইড হবে না)
+  const confirmDeleteToast = (userId, userName) => {
+    toast.custom((t) => (
+      <div
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        } max-w-sm w-full bg-white shadow-2xl rounded-2xl pointer-events-auto flex flex-col p-5 border border-zinc-100`}
+      >
+        <div className="text-left w-full">
+          <p className="text-sm font-bold text-gray-950">
+            Are you sure you want to permanently delete?
+          </p>
+          <p className="mt-1 text-xs text-zinc-500 font-medium truncate">
+            Account of "{userName}" will be permanently lost.
+          </p>
+        </div>
+        
+        {/* 🛠️ সমান col-2 গ্রিড লেআউট ভাই */}
+        <div className="grid grid-cols-2 gap-3 mt-5 w-full pt-2">
+          <button
+            type="button"
+            onClick={() => toast.dismiss(t.id)}
+            className="w-full py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold text-xs transition-all active:scale-95 text-center block"
+          >
+            Cancel
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => {
+              toast.dismiss(t.id);
+              handleActualDelete(userId, userName);
+            }}
+            className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-black rounded-xl font-bold text-xs shadow-md shadow-rose-600/20 transition-all active:scale-95 text-center block"
+          >
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    ), { position: "top-center" });
   };
 
   if (loading) {
@@ -91,8 +162,16 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto p-4">
-      <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6 overflow-hidden shadow-xl">
+    <div className="space-y-6 max-w-5xl mx-auto p-4 relative">
+      
+      {/* 🔮 React Hot Toaster কন্টেইনার ভাই */}
+      <Toaster position="top-right" reverseOrder={false} />
+
+      <div>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Manage All Users</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">Administrative override command dashboard for users assets.</p>
+      </div>
+      <div className="bg-black border border-zinc-800 rounded-2xl p-6 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           {users.length === 0 ? (
             <div className="text-center py-8 text-zinc-500 text-xs font-medium">
@@ -157,7 +236,8 @@ export default function UsersPage() {
                     <td className="py-4 text-center">
                       {user.email !== "said38383742@gmail.com" ? (
                         <button 
-                          onClick={() => handleDeleteUser(user._id, user.name)}
+                          type="button"
+                          onClick={() => confirmDeleteToast(user._id, user.name)}
                           className="p-2 text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all active:scale-90"
                         >
                           <FiTrash2 size={14} />

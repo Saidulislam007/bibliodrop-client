@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FiLoader, FiCheckCircle } from "react-icons/fi";
 import { authClient } from "@/lib/auth-client";
 import { getDeliveriesByEmail } from "@/lib/api/books";
+import toast, { Toaster } from "react-hot-toast"; // 👈 react-hot-toast ইম্পোর্ট করা হলো ভাই
 
 // 🟢 আপনার তৈরি করা অ্যাকশন ফাইল থেকে নতুন PATCH মেথডটি ইম্পোর্ট করা হলো ভাই
 import { updateDeliveryStatus } from "@/lib/actions/books";
@@ -14,6 +15,40 @@ export default function ManageDeliveries() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusLoadingId, setStatusLoadingId] = useState(null);
+
+  // 📢 image_88eee4.png এর মতো লাইট থিম নোটিফিকেশন ফাংশন ভাই
+  const showNotification = (message, type = "success") => {
+    const toastOptions = {
+      style: {
+        borderRadius: "9999px", // পিল শেপ বর্ডার
+        background: "#ffffff",
+        color: "#1f2937", // ডার্ক গ্রে টেক্সট
+        border: "1px solid #e5e7eb", // হালকা গ্রে বর্ডার
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        fontSize: "14px",
+        fontWeight: "600",
+        padding: "8px 16px",
+      },
+    };
+
+    if (type === "success") {
+      toast.success(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#10b981", // গ্রিন টিক মার্ক
+          secondary: "#ffffff",
+        },
+      });
+    } else {
+      toast.error(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#ef4444", //  ক্রস মার্ক
+          secondary: "#ffffff",
+        },
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchAllDeliveries = async () => {
@@ -39,9 +74,9 @@ export default function ManageDeliveries() {
     else return;
 
     try {
-      setStatusLoadingId(id); // বাটন লোডার লক চালু হলো ভাই
+      statusLoadingId === null && setStatusLoadingId(id); // বাটন লোডার লক চালু হলো ভাই
 
-      // 🟢 ১. ব্যাকঅ্যান্ড এক্সপ্রেস সার্ভারে PATCH রিকোয়েস্ট পাঠানো হলো
+      // 🟢 ১. ব্যাকঅ্যান্ড এক্সপ্রেস সার্ভারে PATCH রিকোয়েস্ট পাঠানো হলো
       const response = await updateDeliveryStatus(id, { deliveryStatus: nextStatus });
 
       if (response.success) {
@@ -49,13 +84,13 @@ export default function ManageDeliveries() {
         setDeliveries(prev => 
           prev.map(item => item._id === id ? { ...item, deliveryStatus: nextStatus } : item)
         );
-        alert(`🔄 Delivery status node synced to database: ${nextStatus}`);
+        showNotification(`🔄 Delivery status node synced to database: ${nextStatus}`, "success");
       } else {
-        alert(`❌ Failed to update database node: ${response.message || "Unknown cluster error."}`);
+        showNotification(`❌ Failed to update database node: ${response.message || "Unknown cluster error."}`, "error");
       }
     } catch (err) {
       console.error("Failed to update status node:", err);
-      alert("❌ A network error occurred while updating drop status.");
+      showNotification("❌ A network error occurred while updating drop status.", "error");
     } finally {
       setStatusLoadingId(null);
     }
@@ -82,10 +117,14 @@ export default function ManageDeliveries() {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto px-4">
+    <div className="space-y-6 w-full max-w-7xl mx-auto px-4 relative">
+      
+      {/* 🔮 React Hot Toaster - যা টোস্টকে ডান পাশে লাইট থিমে দেখাবে ভাই */}
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">Manage Deliveries</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Update client order drop cycles smoothly.</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Manage Deliveries</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">Update client order drop cycles smoothly.</p>
       </div>
 
       {deliveries.length === 0 ? (

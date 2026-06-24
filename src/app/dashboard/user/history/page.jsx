@@ -86,8 +86,8 @@ export default function DeliveryHistory() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-2xl font-black text-white tracking-tight">Delivery History</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Track your past and active book drop deliveries.</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Delivery History</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">Track your past and active book drop deliveries.</p>
       </motion.div>
 
       {/* ৩. ডেকোরেটেড এম্পটি স্টেট */}
@@ -116,6 +116,7 @@ export default function DeliveryHistory() {
                   <th className="pb-3">Book Title</th>
                   <th className="pb-3">Delivery Fee</th>
                   <th className="pb-3">Request Date</th>
+                  <th className="pb-3 text-right">Transaction ID</th>
                   <th className="pb-3 text-right">Status</th>
                 </tr>
               </thead>
@@ -124,7 +125,6 @@ export default function DeliveryHistory() {
                   {deliveries.map((item, index) => (
                     <motion.tr 
                       key={item._id} 
-                      // 🎬 টেবিল রো এন্ট্রান্স অ্যানিমেশন লজিক
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: -10 }}
@@ -138,7 +138,7 @@ export default function DeliveryHistory() {
                           alt={item.title} 
                           className="w-7 h-9 object-cover rounded bg-zinc-950 border border-zinc-800/80" 
                         />
-                        <span className="capitalize truncate max-w-[200px] sm:max-w-xs">{item.title}</span>
+                        <span className="capitalize truncate max-w-[160px] sm:max-w-xs">{item.title}</span>
                       </td>
                       
                       {/* ডেলিভারি ফি */}
@@ -149,6 +149,11 @@ export default function DeliveryHistory() {
                       {/* রিকোয়েস্ট এর তারিখ */}
                       <td className="py-3.5 text-zinc-500">
                         {formatDate(item.requestedAt)}
+                      </td>
+
+                      {/* ট্রানজেকশন আইডি ফিল্ড */}
+                      <td className="py-3.5 text-right font-mono text-indigo-400 font-medium tracking-tight">
+                        {item.transactionId || "N/A"}
                       </td>
                       
                       {/* ডাইনামিক স্ট্যাটাস কালার এবং ছোট অ্যানিমেটেড ডট */}

@@ -82,8 +82,8 @@ export default function ReadingList() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-2xl font-black text-white tracking-tight">My Reading List</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Books you have successfully received and finished devouring.</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">My Reading List</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">Books you have successfully received and finished devouring.</p>
       </motion.div>
 
       {completedBooks.length === 0 ? (

@@ -112,10 +112,10 @@ export default function UserOverview() {
     <div className="space-y-8 w-full">
       {/* হেডার ব্লক - ফাইলে কেবল একবারই থাকবে ভাই */}
       <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">
           Welcome Back, <span className="capitalize text-indigo-400">{session.user.name || "Reader"}</span>!
         </h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Here is your local library reading summary.</p>
+        <p className="text-xs text-zinc-600 mt-0.5">Here is your local library reading summary.</p>
       </div>
 
       {/* 📦 ৩টি আলাদা ডেডিকেটেড কম্পোনেন্টে ডাইনামিক স্টেট ডাটা পাস করা হলো ভাই */}

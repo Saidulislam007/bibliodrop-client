@@ -17,7 +17,7 @@ export default function HeroBanner() {
       primaryBtn: "Explore Books",
       secondaryBtn: "How it Works",
       primaryHref: "/browse",
-      secondaryHref: "/about",
+      secondaryHref: "/how-it-works",
       bgGradient: "from-zinc-950 via-indigo-950/40 to-black",
       image: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1200",
     },

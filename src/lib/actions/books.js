@@ -134,3 +134,83 @@ export const createBookReview = async (reviewData) => {
     return { success: false, message: error.message };
   }
 };
+
+// ==========================================
+// ✏️ ১. REVIEW UPDATE ACTION (updateBookReview)
+// ==========================================
+export const updateBookReview = async (reviewId, updatedData) => {
+  try {
+    // 💡 সরাসরি ইউআরএল বা আপনার এনভায়রনমেন্ট ভ্যারিয়েবল এখানে ডিফাইন করা হলো ভাই
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"; 
+
+    const response = await fetch(`${BASE_URL}/reviews/${reviewId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || "Failed to update review payload via cloud."
+      };
+    }
+
+    return {
+      success: true,
+      modifiedCount: data.modifiedCount,
+      message: data.message
+    };
+
+  } catch (error) {
+    console.error("Client Action Error in updateBookReview:", error);
+    return {
+      success: false,
+      message: "Network core handshake failure: " + error.message
+    };
+  }
+};
+
+
+// ==========================================
+// 🗑️ ২. REVIEW DELETE ACTION (deleteBookReview)
+// ==========================================
+export const deleteBookReview = async (reviewId) => {
+  try {
+    // 💡 সরাসরি ইউআরএল বা আপনার এনভায়রনমেন্ট ভ্যারিয়েবল এখানে ডিফাইন করা হলো ভাই
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"; 
+
+    const response = await fetch(`${BASE_URL}/reviews/${reviewId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || "Failed to wipe review asset from server mesh."
+      };
+    }
+
+    return {
+      success: true,
+      deletedCount: data.deletedCount,
+      message: data.message
+    };
+
+  } catch (error) {
+    console.error("Client Action Error in deleteBookReview:", error);
+    return {
+      success: false,
+      message: "Network core handshake failure: " + error.message
+    };
+  }
+};

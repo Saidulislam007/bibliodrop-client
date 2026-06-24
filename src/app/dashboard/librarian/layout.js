@@ -4,7 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { FiLayout, FiPlusCircle, FiPackage, FiTruck, FiUser, FiShield } from "react-icons/fi";
+import { 
+  FiLayout, FiPlusCircle, FiPackage, FiTruck, FiUser, FiShield 
+} from "react-icons/fi";
 
 export default function LibrarianLayout({ children }) {
   const pathname = usePathname();
@@ -14,24 +16,27 @@ export default function LibrarianLayout({ children }) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
+  // 🔒 লোডিং গেটওয়ে (লাইট মোড গ্রে থিম ভাই)
   if (isPending || !isMounted) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white font-sans">
-        <p className="animate-pulse tracking-widest text-sm">LOADING LIBRARIAN PANEL...</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-700 font-sans">
+        <p className="animate-pulse tracking-widest text-sm font-bold">LOADING LIBRARIAN PANEL...</p>
       </div>
     );
   }
 
-  // প্রটেকশন গেটওয়ে (Librarian অথবা Admin ছাড়া কেউ ঢুকতে পারবে না)
+  // প্রটেকশন গেটওয়ে (Librarian বা Admin ছাড়া এক্সেস রিজেক্টেড - লাইট মোড)
   if (userRole !== "librarian" && userRole !== "admin") {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-center p-6 font-sans">
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-full text-red-500 mb-4">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-center p-6 font-sans">
+        <div className="p-4 bg-rose-50 border border-rose-100 rounded-full text-rose-500 mb-4 shadow-sm">
           <FiShield size={40} />
         </div>
-        <h1 className="text-2xl font-black text-white">403 - Access Denied</h1>
-        <p className="text-zinc-400 text-sm mt-2">Only registered Librarians have access to this portal.</p>
-        <Link href="/" className="mt-6 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs">Back to Safety</Link>
+        <h1 className="text-2xl font-black text-slate-900">403 - Access Denied</h1>
+        <p className="text-slate-500 text-sm mt-2">Only registered Librarians have access to this portal.</p>
+        <Link href="/" className="mt-6 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md hover:bg-indigo-700 transition-all">
+          Back to Safety
+        </Link>
       </div>
     );
   }
@@ -44,25 +49,54 @@ export default function LibrarianLayout({ children }) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex font-sans">
+    <div>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 flex items-center justify-around z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] rounded-t-2xl md:hidden lg:hidden">
+  {menuItems.map((item) => {
+    const isActive = pathname === item.href;
+    
+    return (
+      <Link key={item.name} href={item.href} className="flex-1 max-w-[80px] group">
+        <span className={`flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all duration-200 ${
+          isActive
+            ? "text-black scale-105"
+            : "text-slate-400 hover:text-slate-900"
+        }`}>
+          {/* একটিভ থাকলে আইকনটি কালো হবে এবং একটু পপ করবে ভাই */}
+          <span className={`transition-transform duration-200 ${isActive ? "text-black scale-110" : "text-slate-400 group-hover:scale-105"}`}>
+            {item.icon}
+          </span>
+          <span className="truncate max-w-full">{item.name.split(" ")[0]}</span> {/* নাম বড় হলে শুধু প্রথম শব্দ দেখাবে */}
+        </span>
+      </Link>
+    );
+  })}
+</nav>
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans overflow-hidden">
       
-      {/* 🧭 সাইডবার উইজেট */}
-      <aside className="w-64 bg-zinc-900/30 border-r border-zinc-800/60 p-5 flex flex-col gap-6 hidden lg:flex flex-shrink-0">
-        <div className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-5 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-3 text-zinc-400 shadow-inner overflow-hidden">
+      {/* 🧭 বাম পাশের লাইব্রেরিয়ান সাইডবার (পিওর হোয়াইট থিম) */}
+      <aside className="w-64 bg-white border-r border-slate-200 p-5 flex flex-col gap-6 hidden lg:flex flex-shrink-0 min-h-screen sticky top-0 shadow-sm">
+        
+        {/* লাইব্রেরিয়ান প্রোফাইল কার্ড উইজেট - সফট শ্যাডো কম্বিনেশন ভাই */}
+        <div className="bg-black border border-slate-200 rounded-2xl p-5 text-center flex flex-col items-center justify-center shadow-inner">
+          <div className="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-3 text-slate-400 shadow-sm overflow-hidden">
             {session?.user?.image ? (
               <img src={session.user.image} alt="Librarian" className="w-full h-full object-cover" />
             ) : (
-              <FiUser size={28} />
+              <FiUser size={28} className="text-slate-400" />
             )}
           </div>
-          <h2 className="text-sm font-bold text-white truncate max-w-full">{session?.user?.name || "James Rodriguez"}</h2>
-          <p className="text-[11px] text-zinc-500 truncate max-w-full mt-0.5">{session?.user?.email || "james@heritagebooks.com"}</p>
-          <span className="mt-3 px-4 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold rounded-full uppercase tracking-wider">
-            Librarian
+          <h2 className="text-sm font-black text-white truncate max-w-full">
+            {session?.user?.name || "James Rodriguez"}
+          </h2>
+          <p className="text-[11px] text-slate-400 font-medium truncate max-w-full mt-0.5">
+            {session?.user?.email || "james@heritagebooks.com"}
+          </p>
+          <span className="mt-3 px-4 py-0.5 bg-indigo-50 border border-indigo-100 text-gray-600 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+            {userRole}
           </span>
         </div>
 
+        {/* নেভিগেশন লিংক মেনু */}
         <nav className="flex-1 space-y-1">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
@@ -70,8 +104,8 @@ export default function LibrarianLayout({ children }) {
               <Link key={item.name} href={item.href} className="block">
                 <span className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all ${
                   isActive 
-                    ? "bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-sm" 
-                    : "text-zinc-400 hover:bg-zinc-800/40 hover:text-white"
+                    ? "bg-black text-white font-bold shadow-md shadow-indigo-600/10" 
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                 }`}>
                   {item.icon} {item.name}
                 </span>
@@ -81,11 +115,12 @@ export default function LibrarianLayout({ children }) {
         </nav>
       </aside>
 
-      {/* 🖥️ ডানপাশের কন্টেন্ট এরিয়া */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full">
+      {/* 🖥️ ডানপাশের ডাইনামিক কন্টেন্ট এরিয়া (লাইট মোড মেইন রেন্ডারার) */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full h-screen bg-slate-50">
         {children}
       </main>
 
+    </div>
     </div>
   );
 }

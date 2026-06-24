@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation"; 
 import { authClient } from "@/lib/auth-client"; 
 import { createBooks } from "@/lib/actions/books";
+import toast, { Toaster } from "react-hot-toast"; // 👈 react-hot-toast ইম্পোর্ট করা হলো ভাই
 
 export default function AddBook() {
   const { data: session } = authClient.useSession();
@@ -14,13 +15,47 @@ export default function AddBook() {
     author: "", 
     category: "History", 
     fee: "", 
-    price: "", // ➕ নতুন ফিল্ড: বইয়ের দামের জন্য স্টেট যোগ করা হলো
+    price: "", // ➕ নতুন ফিল্ড: বইয়ের দামের জন্য স্টেট যোগ করা হলো
     stock: "1", 
     description: "" 
   });
   
   const [imageUrlInput, setImageUrlInput] = useState(""); 
   const [loading, setLoading] = useState(false);
+
+  // 📢 image_88eee4.png এর মতো লাইট থিম নোটিফিকেশন ফাংশন ভাই
+  const showNotification = (message, type = "success") => {
+    const toastOptions = {
+      style: {
+        borderRadius: "9999px", // পিল শেপ বর্ডার
+        background: "#ffffff",
+        color: "#1f2937", // ডার্ক গ্রে টেক্সট
+        border: "1px solid #e5e7eb", // হালকা গ্রে বর্ডার
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        fontSize: "14px",
+        fontWeight: "600",
+        padding: "8px 16px",
+      },
+    };
+
+    if (type === "success") {
+      toast.success(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#10b981", // গ্রিন টিক মার্ক
+          secondary: "#ffffff",
+        },
+      });
+    } else {
+      toast.error(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#ef4444", // ক্রস মার্ক
+          secondary: "#ffffff",
+        },
+      });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +65,7 @@ export default function AddBook() {
       const imageUrl = imageUrlInput.trim(); 
 
       if (!imageUrl) {
-        alert("⚠️ Please provide a valid Book Cover Image URL.");
+        showNotification("⚠️ Please provide a valid Book Cover Image URL.", "error");
         setLoading(false);
         return;
       }
@@ -67,7 +102,7 @@ export default function AddBook() {
         result?.insertedId || 
         result?.acknowledged === true
       ) {
-        alert("🎉 Success! Book submitted to database. Initial Status: Pending Approval.");
+        showNotification("🎉 Success! Book submitted to database. Initial Status: Pending Approval.", "success");
         
         // ফর্ম সম্পূর্ণ ক্লিয়ার করা হলো
         setForm({ title: "", author: "", category: "History", fee: "", price: "", stock: "1", description: "" });
@@ -76,22 +111,26 @@ export default function AddBook() {
         router.push("/dashboard/librarian/inventory");
         router.refresh(); 
       } else {
-        alert(`❌ Failed: ${result?.message || "Something went wrong while saving the book."}`);
+        showNotification(`❌ Failed: ${result?.message || "Something went wrong while saving the book."}`, "error");
       }
 
     } catch (err) {
       console.error("Error in component submit:", err);
-      alert("❌ A network error occurred. Please check your server status.");
+      showNotification("❌ A network error occurred. Please check your server status.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-xl">
+    <div className="space-y-6 max-w-xl relative">
+      
+      {/* 🔮 React Hot Toaster - যা টোস্টকে ডান পাশে লাইট থিমে দেখাবে ভাই */}
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">Add New Book</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">List a new item. Admin approval is strictly required before publishing.</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Add New Book</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">List a new item. Admin approval is strictly required before publishing.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-6 space-y-4 shadow-md">
@@ -109,7 +148,6 @@ export default function AddBook() {
         </div>
 
         {/* ক্যাটাগরি, ডেলিভারি ফি, বুক প্রাইস এবং স্টক কোয়ান্টিটি */}
-        {/* 🛠️ গ্রিডটিকে ২ কলাম করে সুন্দর রিলেশন নিয়ে আসা হলো */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-zinc-400 uppercase">Category</label>
@@ -154,7 +192,7 @@ export default function AddBook() {
           <input type="url" required value={imageUrlInput} onChange={e => setImageUrlInput(e.target.value)} className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs focus:outline-none focus:border-indigo-500 text-white" placeholder="https://i.ibb.co/your-hosting-image-link.png" />
         </div>
 
-        <button type="submit" disabled={loading} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-[0.98] mt-4">
+        <button type="submit" disabled={loading} className="w-full py-2.5 bg-white hover:bg-gray-600 text-gray-900 font-bold rounded-xl text-xs shadow-md transition-all active:scale-[0.98] mt-4">
           {loading ? "Processing Asset..." : "Submit Book Asset"}
         </button>
       </form>

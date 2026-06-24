@@ -4,10 +4,11 @@ import React, { useState, useEffect } from "react";
 import { FiEdit3, FiTrash2, FiStar, FiLoader, FiMessageSquare, FiSend } from "react-icons/fi";
 import { authClient } from "@/lib/auth-client";
 import { motion, AnimatePresence } from "framer-motion";
+import toast, { Toaster } from "react-hot-toast";
 
-// 🟢 এপিআই মেথড সমূহ ইম্পোর্ট (getAllReviews এখানে যুক্ত করা হলো ভাই)
+// 🟢 এপিআই মেথড সমূহ ইম্পোর্ট
 import { getDeliveriesByEmail, getAllReviews } from "@/lib/api/books";
-import { createBookReview } from "@/lib/actions/books";
+import { createBookReview, updateBookReview, deleteBookReview } from "@/lib/actions/books"; // 👈 সঠিক অ্যাকশন মেথড ইম্পোর্ট করা হলো ভাই
 
 export default function MyReviews() {
   const { data: session, isPending: sessionLoading } = authClient.useSession();
@@ -21,77 +22,108 @@ export default function MyReviews() {
   const [reviewRatings, setReviewRatings] = useState({}); 
   const [submittingId, setSubmittingId] = useState(null);
 
-  useEffect(() => {
-    const loadDeliveredBooksAndReviews = async () => {
-      if (sessionLoading) return;
-      if (!session?.user?.email) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const currentUserId = session.user.id || session.user._id;
-
-        // ১. ইউজারের সমস্ত সফল ডেলিভারি ডাটা আনা হলো ভাই
-        const deliveriesData = await getDeliveriesByEmail(session.user.email);
-        
-        // 🚀 ২. কালেকশন থেকে সমস্ত রিভিউ ডাটা এক টানে আনা হলো ভাই
-        const allReviewsData = await getAllReviews();
-        
-        if (Array.isArray(deliveriesData)) {
-          // ডেলিভারড বইগুলো ফিল্টার
-          const filteredDeliveries = deliveriesData.filter(
-            (item) => 
-              item.userEmail === session.user.email && 
-              item.userId === currentUserId &&
-              item.deliveryStatus === "Delivered"
-          );
-
-          filteredDeliveries.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
-
-          const initialInputs = {};
-          const initialRatings = {};
-
-          // 🎯 ৩. [🧠 স্ট্রং লজিক সিঙ্ক] প্রতিটি ডেলিভারি আইটেমের সাথে রিভিউ ম্যাচিং করা হচ্ছে
-          const syncedDeliveries = filteredDeliveries.map((book) => {
-            let matchedComment = "";
-            let matchedRating = 5;
-
-            if (Array.isArray(allReviewsData)) {
-              // কন্ডিশন: bookId মিলতে হবে এবং কারেন্ট লগইন ইউজারের userId মিলতে হবে ভাই
-              const userReview = allReviewsData.find(
-                (rev) => rev.bookId === book.bookId && rev.userId === currentUserId
-              );
-
-              if (userReview) {
-                matchedComment = userReview.comment || "";
-                matchedRating = userReview.rating || 5;
-              }
-            }
-
-            initialInputs[book._id] = ""; // ইনপুট বক্স সবসময় নতুন লেখার জন্য ফাঁকা থাকবে ভাই
-            initialRatings[book._id] = matchedRating; // যদি ডাটাবেজে রিভিউ থাকে তবে সেই রেটিং সেট হবে
-
-            // অবজেক্টের ভেতর লাইভ কমেন্ট ও রেটিং ইনজেক্ট করে দেওয়া হলো ভাই
-            return {
-              ...book,
-              comment: matchedComment,
-              rating: matchedRating
-            };
-          });
-
-          setDeliveredReviews(syncedDeliveries);
-          setReviewInputs(initialInputs);
-          setReviewRatings(initialRatings);
-        }
-      } catch (err) {
-        console.error("Error cross-checking review pipeline registries:", err);
-      } finally {
-        setLoading(false);
-      }
+  // 📢 লাইট থিম নোটিফিকেশন ফাংশন ভাই
+  const showNotification = (message, type = "success") => {
+    const toastOptions = {
+      style: {
+        borderRadius: "9999px",
+        background: "#ffffff",
+        color: "#1f2937",
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        fontSize: "14px",
+        fontWeight: "600",
+        padding: "8px 16px",
+      },
     };
 
+    if (type === "success") {
+      toast.success(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#10b981",
+          secondary: "#ffffff",
+        },
+      });
+    } else {
+      toast.error(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#ef4444",
+          secondary: "#ffffff",
+        },
+      });
+    }
+  };
+
+  // 🔄 ডাটাবেজ থেকে ডেটা লোড করার কোর ফাংশন
+  const loadDeliveredBooksAndReviews = async () => {
+    if (sessionLoading) return;
+    if (!session?.user?.email) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const currentUserId = session.user.id || session.user._id;
+
+      const deliveriesData = await getDeliveriesByEmail(session.user.email);
+      const allReviewsData = await getAllReviews();
+      
+      if (Array.isArray(deliveriesData)) {
+        const filteredDeliveries = deliveriesData.filter(
+          (item) => 
+            item.userEmail === session.user.email && 
+            item.userId === currentUserId &&
+            item.deliveryStatus === "Delivered"
+        );
+
+        filteredDeliveries.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+
+        const initialInputs = {};
+        const initialRatings = {};
+
+        const syncedDeliveries = filteredDeliveries.map((book) => {
+          let matchedComment = "";
+          let matchedRating = 5;
+          let matchedReviewId = null;
+
+          if (Array.isArray(allReviewsData)) {
+            const userReview = allReviewsData.find(
+              (rev) => rev.bookId === book.bookId && rev.userId === currentUserId
+            );
+
+            if (userReview) {
+              matchedComment = userReview.comment || "";
+              matchedRating = userReview.rating || 5;
+              matchedReviewId = userReview._id;
+            }
+          }
+
+          initialInputs[book._id] = ""; 
+          initialRatings[book._id] = matchedRating; 
+
+          return {
+            ...book,
+            reviewId: matchedReviewId, // 👈 ডাইনামিক রিভিউ আইডি পুশ
+            comment: matchedComment,
+            rating: matchedRating
+          };
+        });
+
+        setDeliveredReviews(syncedDeliveries);
+        setReviewInputs(prev => ({ ...initialInputs, ...prev }));
+        setReviewRatings(prev => ({ ...initialRatings, ...prev }));
+      }
+    } catch (err) {
+      console.error("Error cross-checking review pipeline registries:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
     loadDeliveredBooksAndReviews();
   }, [session?.user?.email, sessionLoading]);
 
@@ -105,11 +137,47 @@ export default function MyReviews() {
     setReviewRatings(prev => ({ ...prev, [id]: ratingValue }));
   };
 
-  // এপিআই কলসহ কমেন্ট সাবমিট করার হ্যান্ডলার
+  // 📝 এডিট আইকন ক্লিক করলে টেক্সট ইনপুট বক্সে ডাটা পাঠানোর লজিক ভাই
+  const handleEditClick = (id, existingComment, existingRating) => {
+    setReviewInputs(prev => ({ ...prev, [id]: existingComment }));
+    setReviewRatings(prev => ({ ...prev, [id]: existingRating }));
+    showNotification("✏️ Review loaded into input field for editing.", "success");
+  };
+
+  // 🗑️ রিভিউ ডিলিট করার হ্যান্ডলার ভাই (deleteBookReview মেথড ইমপ্লিমেন্ট করা হলো)
+  const handleDeleteClick = async (id, reviewId, currentBookTitle) => {
+    if (!reviewId) {
+      showNotification("⚠️ You haven't reviewed this book yet!", "error");
+      return;
+    }
+
+    if (!confirm(`⚠️ Are you sure you want to permanently delete your review for "${currentBookTitle}"?`)) return;
+
+    try {
+      setSubmittingId(id);
+      const result = await deleteBookReview(reviewId); // 👈 আপনার সঠিক ডিলিট ফাংশন কল ভাই
+      
+      if (result.success) {
+        showNotification(`🗑️ Review deleted successfully for "${currentBookTitle}"`, "success");
+        // ডিলিট হওয়ার পর সংশ্লিষ্ট ইনপুট ফিল্ড ক্লিন করা
+        setReviewInputs(prev => ({ ...prev, [id]: "" }));
+        await loadDeliveredBooksAndReviews(); // ডাটা রি-লোডিং ভাই
+      } else {
+        showNotification(`❌ Failed: ${result.message || "Could not delete review."}`, "error");
+      }
+    } catch (err) {
+      console.error("Delete review error:", err);
+      showNotification("❌ A network error occurred while deleting.", "error");
+    } finally {
+      setSubmittingId(null);
+    }
+  };
+
+  // এপিআই কলসহ কমেন্ট সাবমিট/আপডেট করার হ্যান্ডলার (updateBookReview মেথড ইমপ্লিমেন্ট করা হলো)
   const handleSubmitComment = async (id, currentBookTitle) => {
     const commentText = reviewInputs[id]?.trim();
     if (!commentText) {
-      alert("⚠️ Please write something before submitting your thoughts!");
+      showNotification("⚠️ Please write something before submitting your thoughts!", "error");
       return;
     }
 
@@ -118,39 +186,43 @@ export default function MyReviews() {
 
     try {
       setSubmittingId(id);
-      
-      const reviewPayload = {
-        bookId: currentItem.bookId,
-        deliveryId: currentItem._id, 
-        title: currentItem.title,
-        author: currentItem.author,
-        image: currentItem.image,
-        category: currentItem.category,
-        userId: currentItem.userId,
-        userEmail: currentItem.userEmail,
-        userName: currentItem.userName,
-        comment: commentText,
-        rating: reviewRatings[id] || 5 
-      };
+      let result;
 
-      const result = await createBookReview(reviewPayload);
+      // 🔄 যদি অলরেডি ডাটাবেজে রিভিউ থাকে, তবে সাবমিট বাটনটি updateBookReview হিসেবে কাজ করবে ভাই
+      if (currentItem.reviewId) {
+        result = await updateBookReview(currentItem.reviewId, { // 👈 আপনার সঠিক আপডেট ফাংশন কল ভাই
+          comment: commentText,
+          rating: reviewRatings[id] || 5
+        });
+      } else {
+        // নতুন রিভিউ তৈরি মোড ভাই
+        const reviewPayload = {
+          bookId: currentItem.bookId,
+          deliveryId: currentItem._id, 
+          title: currentItem.title,
+          author: currentItem.author,
+          image: currentItem.image,
+          category: currentItem.category,
+          userId: currentItem.userId,
+          userEmail: currentItem.userEmail,
+          userName: currentItem.userName,
+          comment: commentText,
+          rating: reviewRatings[id] || 5 
+        };
+        result = await createBookReview(reviewPayload);
+      }
       
       if (result.success) {
-        // সাবমিট সফল হলে লোকাল স্টেটে কমেন্ট বক্স শো করানোর জন্য ডেটা সেট করা হলো ভাই
-        setDeliveredReviews(prev => 
-          prev.map(item => item._id === id ? { ...item, comment: commentText, rating: reviewRatings[id] } : item)
-        );
-
-        // সফলভাবে সাবমিট হওয়ার পর কমেন্ট ফিল্ড ফাঁকা করা
+        // সফলভাবে সাবমিট বা আপডেট হওয়ার পর ইনপুট ফিল্ড ফাঁকা করা
         setReviewInputs(prev => ({ ...prev, [id]: "" }));
-
-        alert(`🎉 Review successfully stored inside "reviews" collection for "${currentBookTitle}"`);
+        showNotification(currentItem.reviewId ? `🎉 Review updated for "${currentBookTitle}"` : `🎉 Review stored for "${currentBookTitle}"`, "success");
+        await loadDeliveredBooksAndReviews(); // ডাটা লাইভ রি-সিঙ্ক
       } else {
-        alert(`❌ Failed: ${result.message || "Could not save review data."}`);
+        showNotification(`❌ Failed: ${result.message || "Could not save review data."}`, "error");
       }
     } catch (err) {
       console.error("Failed to save commentary feedback via fetch:", err);
-      alert("❌ A network error occurred while updating the database.");
+      showNotification("❌ A network error occurred while updating the database.", "error");
     } finally {
       setSubmittingId(null);
     }
@@ -179,15 +251,18 @@ export default function MyReviews() {
   }
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-6 w-full relative">
+      
+      <Toaster position="top-right" reverseOrder={false} />
+
       {/* হেডার ব্লক */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-2xl font-black text-white tracking-tight">My Reviews & Comments</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Manage your thoughts and ratings given to items.</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">My Reviews & Comments</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">Manage your thoughts and ratings given to items.</p>
       </motion.div>
 
       {deliveredReviews.length === 0 ? (
@@ -216,7 +291,7 @@ export default function MyReviews() {
                 whileHover={{ borderColor: "rgba(63, 63, 70, 0.8)" }}
                 className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-5 shadow-sm space-y-4 transition-colors duration-150"
               >
-                {/* কার্ড হেডার পার্ট */}
+                {/* কন্টেন্ট পার্ট */}
                 <div className="flex justify-between items-start gap-4">
                   <div>
                     <h3 className="font-bold text-white text-sm capitalize">{rev.title}</h3>
@@ -224,16 +299,26 @@ export default function MyReviews() {
                   </div>
 
                   <div className="flex gap-1">
-                    <button className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-md transition-all">
+                    {/* 📝 এডিট বাটন - এক্সিস্টিং কমেন্ট থাকলে লোড হবে ভাই */}
+                    <button 
+                      disabled={!rev.comment}
+                      onClick={() => handleEditClick(rev._id, rev.comment, rev.rating)}
+                      className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
                       <FiEdit3 size={13} />
                     </button>
-                    <button className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 rounded-md transition-all">
+                    {/* 🗑️ ডিলিট বাটন - এখানে সঠিক ক্লিক হ্যান্ডলার বসানো হয়েছে */}
+                    <button 
+                      disabled={submittingId === rev._id || !rev.reviewId}
+                      onClick={() => handleDeleteClick(rev._id, rev.reviewId, rev.title)}
+                      className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
                       <FiTrash2 size={13} />
                     </button>
                   </div>
                 </div>
 
-                {/* হোয়াইট কমেন্ট ডিসপ্লে বক্স */}
+                {/* হোয়াইট কমেন্ট ডিসপ্লে বক্স */}
                 {rev.comment && (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.97 }}
@@ -245,7 +330,7 @@ export default function MyReviews() {
                         {rev.userName || session?.user?.name || "Farista Said"}
                       </p>
                       <div className="flex text-amber-400 gap-0.5">
-                        {[...Array(Number(rev.rating) || 5)].map((_, idx) => (
+                        {[...Array(index === -1 ? 5 : (Number(rev.rating) || 5))].map((_, idx) => (
                           <FiStar key={idx} size={13} fill="currentColor" />
                         ))}
                       </div>
@@ -259,7 +344,7 @@ export default function MyReviews() {
                   </motion.div>
                 )}
 
-                {/* ইনপুট এবং স্টার সিলেক্টর এরিয়া */}
+                {/* ইনপুট এবং স্টার সিলেক্টর এরিয়া */}
                 <div className="space-y-2 pt-1 border-t border-zinc-800/40">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
@@ -294,7 +379,7 @@ export default function MyReviews() {
                       type="text"
                       value={reviewInputs[rev._id] || ""}
                       onChange={(e) => handleInputChange(rev._id, e.target.value)}
-                      placeholder="Write your live book commentary here..."
+                      placeholder="Write or edit your book commentary here..."
                       className="flex-1 bg-zinc-950/60 text-zinc-200 text-xs font-medium px-4 py-2.5 rounded-xl border border-zinc-800/50 outline-none focus:border-indigo-500/80 transition-all placeholder:text-zinc-600"
                     />
                     

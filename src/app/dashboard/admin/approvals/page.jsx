@@ -4,11 +4,45 @@ import { deleteBook, updateBookStatus } from "@/lib/actions/books";
 import { getBooks } from "@/lib/api/books";
 import React, { useState, useEffect } from "react";
 import { FiTrash2, FiLoader } from "react-icons/fi";
- // 📢 ডিলিট অ্যাকশনটি এখানে ইম্পোর্ট করা হলো
+import toast, { Toaster } from "react-hot-toast";
 
 export default function ApprovalsPage() {
   const [pendingBooks, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 📢 লাইট থিম পিল-শেপ নোটিফিকেশন হ্যান্ডলার
+  const showNotification = (message, type = "success") => {
+    const toastOptions = {
+      style: {
+        borderRadius: "9999px",
+        background: "#ffffff",
+        color: "#1f2937",
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        fontSize: "14px",
+        fontWeight: "600",
+        padding: "8px 16px",
+      },
+    };
+
+    if (type === "success") {
+      toast.success(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#10b981",
+          secondary: "#ffffff",
+        },
+      });
+    } else {
+      toast.error(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#ef4444",
+          secondary: "#ffffff",
+        },
+      });
+    }
+  };
 
   // 🔄 ডাটাবেজ থেকে ডেটা ফেচ করা
   useEffect(() => {
@@ -24,7 +58,6 @@ export default function ApprovalsPage() {
           allBooks = data.books;
         }
 
-        // শুধুমাত্র "Pending Approval" স্ট্যাটাসের বইগুলো ফিল্টার করা হলো
         const filteredBooks = allBooks.filter(book => book.status === "Pending Approval");
         setBooks(filteredBooks);
       } catch (error) {
@@ -37,7 +70,7 @@ export default function ApprovalsPage() {
     fetchApprovalsData();
   }, []);
 
-  // 🚀 ১. অ্যাপ্রুভ হ্যান্ডলার ফাংশন (ডাটাবেজ ও ইউআই সিঙ্ক)
+  // 🚀 অ্যাপ্রুভ হ্যান্ডলার ফাংশন
   const handleApproveBook = async (bookId, bookTitle) => {
     try {
       const updatePayload = {
@@ -54,39 +87,75 @@ export default function ApprovalsPage() {
         result?.modifiedCount > 0 || 
         result?.acknowledged === true
       ) {
-        alert(`🎉 Success! ${bookTitle} has been successfully approved & published.`);
+        showNotification(`🎉 Success! ${bookTitle} has been successfully approved & published.`, "success");
         setBooks(pendingBooks.filter(book => book._id !== bookId));
       } else {
-        alert(`❌ Update Failed: ${result?.message || "Could not approve the book."}`);
+        showNotification(`❌ Update Failed: ${result?.message || "Could not approve the book."}`, "error");
       }
     } catch (error) {
       console.error("Error during approval handler:", error);
-      alert("❌ Server sync error. Please try again.");
+      showNotification("❌ Server sync error. Please try again.", "error");
     }
   };
 
-  // 🗑️ ২. ডিলিট/রিজেক্ট হ্যান্ডলার লজিক (ডাটাবেজ ও ইউআই সিঙ্ক)
+  // 🗑️ ডিলিট/রিজেক্ট হ্যান্ডলার লজিক
   const handleRejectBook = async (bookId, bookTitle) => {
     try {
-      // ব্যাকএন্ড ডিলিট অ্যাকশন কল করা হলো
       const result = await deleteBook(bookId);
 
-      // মঙ্গোডিবির ড্রাইভার সাধারণত deletedCount রিটার্ন করে
       if (
         result?.success || 
         result?.deletedCount > 0 || 
         result?.acknowledged === true
       ) {
-        alert(`🗑️ Deleted! ${bookTitle} has been removed from the database.`);
-        // সফল হলে ক্লায়েন্ট সাইড UI থেকেও বইটি সরিয়ে দেওয়া হলো
+        showNotification(`🗑️ Deleted! ${bookTitle} has been removed from the database.`, "success");
         setBooks(pendingBooks.filter(book => book._id !== bookId));
       } else {
-        alert(`❌ Delete Failed: ${result?.message || "Could not delete the book asset."}`);
+        showNotification(`❌ Delete Failed: ${result?.message || "Could not delete the book asset."}`, "error");
       }
     } catch (error) {
       console.error("Error during delete handler:", error);
-      alert("❌ Server sync error while deleting. Please try again.");
+      showNotification("❌ Server sync error while deleting. Please try again.", "error");
     }
+  };
+
+  // ⚠️ ফিক্সড কাস্টম কনফার্মেশন ডায়ালগ টোস্ট (বাটন হাইড হওয়া রোধ করতে লেআউট ফিক্স করা হয়েছে ভাই)
+  const confirmDeleteToast = (bookId, bookTitle) => {
+    toast.custom((t) => (
+      <div
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        } max-w-sm w-full bg-white shadow-xl rounded-2xl pointer-events-auto flex flex-col p-5 border border-zinc-100`}
+      >
+        <div className="text-left">
+          <p className="text-sm font-bold text-gray-900">
+            Are you sure you want to reject and delete?
+          </p>
+          <p className="mt-1 text-xs text-zinc-500 font-medium truncate">
+            "{bookTitle}" asset will be permanently lost.
+          </p>
+        </div>
+        
+        {/* 🛠️ বাটন কন্টেইনার এবং উইডথ ফিক্স করা হলো ভাই */}
+        <div className="flex items-center justify-end gap-2.5 mt-4 w-full">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold text-xs transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              handleRejectBook(bookId, bookTitle);
+            }}
+            className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-black rounded-xl font-bold text-xs shadow-sm shadow-rose-600/10 transition-colors whitespace-nowrap"
+          >
+            Yes, Delete
+          </button>
+        </div>
+      </div>
+    ), { position: "top-center" });
   };
 
   if (loading) {
@@ -99,10 +168,14 @@ export default function ApprovalsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      
+      {/* React Hot Toaster কন্টেইনার */}
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">Book Approval Queue</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Review and approve new librarian submittals.</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Book Approval Queue</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">Review and approve new librarian submittals.</p>
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800/60 rounded-2xl p-5 shadow-md overflow-hidden">
@@ -118,7 +191,7 @@ export default function ApprovalsPage() {
                   <th className="pb-3">Title</th>
                   <th className="pb-3">Author</th>
                   <th className="pb-3">Category</th>
-                  <th className="pb-3">Fee</th>
+                  <th className="pb-3">Price</th>
                   <th className="pb-3">Librarian</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
@@ -134,7 +207,7 @@ export default function ApprovalsPage() {
                       </span>
                     </td>
                     <td className="py-3.5 font-semibold text-emerald-400">
-                      ${book.fee ? Number(book.fee).toFixed(2) : "0.00"}
+                      ${book.price }
                     </td>
                     <td className="py-3.5 text-zinc-400 truncate max-w-[150px]">
                       {book.librarianEmail || "Unknown Librarian"}
@@ -147,13 +220,8 @@ export default function ApprovalsPage() {
                         Approve
                       </button>
                       
-                      {/* ডাইনামিকলি ব্যাকএন্ডের সাথে যুক্ত ডিলিট বাটন */}
                       <button 
-                        onClick={() => {
-                          if(confirm(`Are you sure you want to reject and delete "${book.title}"?`)) {
-                            handleRejectBook(book._id, book.title);
-                          }
-                        }} 
+                        onClick={() => confirmDeleteToast(book._id, book.title)} 
                         className="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg transition-all active:scale-95"
                       >
                         <FiTrash2 size={13} />

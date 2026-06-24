@@ -1,6 +1,10 @@
 import CoreFeatures from "@/components/CoreFeatures";
+import FeaturedBooks from "@/components/FeaturedBooks";
+import FeaturedLibrarians from "@/components/FeaturedLibrarians";
 import HeroBanner from "@/components/HeroBanner";
-import PlatformLiveStats from "@/components/PlatformLiveStats";
+import PopularCategories from "@/components/PopularCategories";
+import StatsSection from "@/components/StatsSection";
+import Testimonials from "@/components/Testimonials";
 import ValueProposition from "@/components/ValueProposition";
 
 export default function Home() {
@@ -11,9 +15,12 @@ export default function Home() {
       <div className="relative z-10 w-full h-[580px] sm:h-[640px] lg:h-[680px] block">
         <HeroBanner />
       </div>
-      
+      <FeaturedBooks />
       <CoreFeatures />
-      <PlatformLiveStats />
+      <StatsSection />
+      <PopularCategories />
+      <FeaturedLibrarians />
+      <Testimonials />
       <ValueProposition />
       
     </div>

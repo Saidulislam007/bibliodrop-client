@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiTruck, FiCalendar, FiUser, FiEye } from "react-icons/fi";
+import { FiTruck, FiCalendar, FiUser, FiEye, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { getBooks } from "@/lib/api/books"; 
+import { Loader } from "lucide-react";
 
 export default function BrowseBooksPage() {
   const [books, setBooks] = useState([]);
@@ -15,20 +16,29 @@ export default function BrowseBooksPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("latest");
 
+  // 🔢 অতিরিক্ত পেজিনেশন স্টেট (UI অপরিবর্তিত রাখতে ব্যাকগ্রাউন্ডে কাজ করবে ভাই)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 6; // প্রতি পেজে ৬টি করে আইটেম লোড হবে
+
   const categories = ["All", "History", "Romance", "Mystery", "Sci-Fi", "Academic"];
 
-  // 🔄 ডাটাবেজ থেকে রিয়েল ডাটা ফেচ করা
+  // 🔄 ডাটাবেজ থেকে রিয়েল ডাটা ফেচ করা (পেজিনেশন কুয়েরি সিঙ্ক করা হলো ভাই)
   useEffect(() => {
     const loadBooks = async () => {
       try {
         setLoading(true);
-        const data = await getBooks("", ""); 
+        // 🎯 এপিআই মেথডে আপনার কারেন্ট পেজ এবং লিমিট পাস করা হলো
+        const data = await getBooks(currentPage, itemsPerPage); 
         
         let fetchedBooks = Array.isArray(data) ? data : data?.books || [];
         
         // 🛡️ শুধুমাত্র "status": "Published" থাকা বইগুলো ফিল্টার করা হলো ভাই
         const publicCatalog = fetchedBooks.filter(book => book.status === "Published");
         setBooks(publicCatalog);
+        
+        // 🎯 ব্যাকঅ্যান্ড থেকে আসা টোটাল পেজ সংখ্যা ডাইনামিক সেট হবে
+        setTotalPages(data?.totalPages || 1);
       } catch (err) {
         console.error("Catalog load error:", err);
       } finally {
@@ -36,7 +46,7 @@ export default function BrowseBooksPage() {
       }
     };
     loadBooks();
-  }, []);
+  }, [currentPage]); // 👈 প্রতিবার পেজ নম্বর চেঞ্জ হলে নতুন ডাটা এক টানে আসবে ভাই
 
   // ⚙️ ক্লায়েন্ট সাইড সার্চ, ফিল্টারিং ও সর্টিং লজিক
   const filteredBooks = books
@@ -86,41 +96,32 @@ export default function BrowseBooksPage() {
         </div>
       </div>
 
-      {/* ==================== ২. সার্চ, ফিল্টার এবং সর্ট কন্ট্রোলস ==================== */}
+      {/* ==================== ২. সার্চ, ফিল্টার এবং সর্ট Controls ==================== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        
-        {/* 🛠️ ফিক্সড সার্চ বার এবং সর্ট ড্রপডাউন গ্রুপ */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1 max-w-xl">
-          
-          {/* 🔍 সার্চ ইনপুট কন্টেইনার (আইকন পজিশন এবং প্যাডিং ফিক্স) */}
+        <div className="flex flex-col sm:flex-row lg:flex-row items-stretch sm:items-center gap-4 flex-1 max-w-xl">
           <div className="relative flex-1 group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-[#0091ff] transition-colors">
-              
-            </div>
             <input 
               type="text" 
               placeholder="Search assets by title or author..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border pl-4 border-slate-200 text-slate-800 rounded-full py-3 pl-11 pr-5 text-xs font-medium focus:outline-none focus:border-[#0091ff] focus:bg-white transition-all shadow-sm"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-full py-3 px-6 text-xs font-medium focus:outline-none focus:border-[#0091ff] focus:bg-white transition-all shadow-sm"
             />
           </div>
 
-          {/* সর্ট সিলেক্ট বক্স */}
           <div className="relative">
             <select 
               value={sortBy} 
               onChange={(e) => setSortBy(e.target.value)}
               className="w-full sm:w-44 bg-slate-50 border border-slate-200 text-slate-700 rounded-full py-3 px-4 text-xs font-bold focus:outline-none focus:border-[#0091ff] cursor-pointer transition-all shadow-sm"
             >
-              <option value="latest">Newest Added</option>
+              <option value="latest">Newest First</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
             </select>
           </div>
         </div>
         
-        {/* কাস্টম ক্যাটাগরি টগল গ্রুপ */}
         <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 border border-slate-100 p-1.5 rounded-xl w-fit shrink-0 shadow-sm">
           {categories.map((cat) => (
             <button
@@ -138,95 +139,131 @@ export default function BrowseBooksPage() {
         </div>
       </div>
 
-      {/* ==================== ৩. বুক کارت্স গ্রিড ==================== */}
+      {/* ==================== ৩. বুক কার্ডস গ্রিড ==================== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white border border-slate-100 h-96 rounded-2xl p-4 space-y-4 animate-pulse">
-                <div className="w-full h-48 bg-slate-100 rounded-xl"></div>
-                <div className="h-4 bg-slate-100 rounded w-3/4"></div>
-                <div className="h-3 bg-slate-100 rounded w-1/2"></div>
-              </div>
-            ))}
-          </div>
+          <Loader className="mx-auto my-20 text-[#0091ff] w-12 h-12 animate-spin" />
         ) : filteredBooks.length === 0 ? (
           <div className="w-full text-center py-20 text-slate-400 text-sm font-medium border border-dashed border-slate-200 rounded-2xl">
             No active book assets recorded in this specific pipeline channel token.
           </div>
         ) : (
-          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
-            <AnimatePresence mode="popLayout">
-              {filteredBooks.map((book) => {
-                const isOutOfStock = (book.stockQuantity || 0) < 1;
-                return (
-                  <motion.div
-                    layout
-                    key={book._id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.3 }}
-                    className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-200/60 transition-all duration-300 group flex flex-col justify-between"
-                  >
-                    <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden shrink-0">
-                      <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-80" />
-                      
-                      <span className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-[9px] font-bold text-white px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <FiCalendar size={10} className="text-[#0091ff]" />
-                        {book.dateAdded ? new Date(book.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "Just now"}
-                      </span>
+          <>
+            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+              <AnimatePresence mode="popLayout">
+                {filteredBooks.map((book) => {
+                  const isOutOfStock = (book.stockQuantity || 0) < 1;
+                  return (
+                    <motion.div
+                      layout
+                      key={book._id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.3 }}
+                      className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-200/60 transition-all duration-300 group flex flex-col justify-between"
+                    >
+                      <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden shrink-0">
+                        <img src={book.image} alt={book.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-80" />
+                        
+                        <span className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-[9px] font-bold text-white px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <FiCalendar size={10} className="text-[#0091ff]" />
+                          {book.dateAdded ? new Date(book.dateAdded).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "Just now"}
+                        </span>
 
-                      <span className={`absolute top-3 right-3 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md shadow-sm ${
-                        isOutOfStock ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
-                      }`}>
-                        {isOutOfStock ? "Unavailable" : "Available"}
-                      </span>
-                    </div>
+                        <span className={`absolute top-3 right-3 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md shadow-sm ${
+                          isOutOfStock ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
+                        }`}>
+                          {isOutOfStock ? "Unavailable" : "Available"}
+                        </span>
+                      </div>
 
-                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-[#0091ff] uppercase tracking-widest">
-                          <span>{book.category}</span>
-                          <span className="text-amber-500 font-extrabold text-xs">${book.price || "0"}</span>
+                      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-[#0091ff] uppercase tracking-widest">
+                            <span>{book.category}</span>
+                            <span className="text-amber-500 font-extrabold text-xs">${book.price || "0"}</span>
+                          </div>
+                          
+                          <h3 className="text-base font-extrabold text-slate-900 tracking-tight line-clamp-1 group-hover:text-[#0091ff] transition-colors">
+                            {book.title}
+                          </h3>
+                          
+                          <p className="text-xs text-slate-400 flex items-center gap-1 font-medium">
+                            <FiUser size={12} /> By {book.author}
+                          </p>
+                          
+                          <p className="text-xs text-slate-500 leading-relaxed pt-2 line-clamp-2">
+                            {book.description || "No description loaded for this library node asset portfolio."}
+                          </p>
                         </div>
-                        
-                        <h3 className="text-base font-extrabold text-slate-900 tracking-tight line-clamp-1 group-hover:text-[#0091ff] transition-colors">
-                          {book.title}
-                        </h3>
-                        
-                        <p className="text-xs text-slate-400 flex items-center gap-1 font-medium">
-                          <FiUser size={12} /> By {book.author}
-                        </p>
-                        
-                        <p className="text-xs text-slate-500 leading-relaxed pt-2 line-clamp-2">
-                          {book.description || "No description loaded for this library node asset portfolio."}
-                        </p>
-                      </div>
 
-                      <div className="pt-2 flex items-center gap-2">
-                        <Link 
-                          href={`/browse/${book._id}`}
-                          className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#0091ff] hover:bg-[#007be6] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-                        >
-                          <FiTruck size={13} />
-                          <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
-                        </Link>
-                        
-                        <Link 
-                          href={`/browse/${book._id}`}
-                          className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-600 rounded-xl transition-colors flex items-center justify-center" 
-                        >
-                          <FiEye size={14} />
-                        </Link>
+                        <div className="pt-2 flex items-center gap-2">
+                          <Link 
+                            href={`/browse/${book._id}`}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#0091ff] hover:bg-[#007be6] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                          >
+                            <FiTruck size={13} />
+                            <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
+                          </Link>
+                          
+                          <Link 
+                            href={`/browse/${book._id}`}
+                            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-600 rounded-xl transition-colors flex items-center justify-center" 
+                          >
+                            <FiEye size={14} />
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </motion.div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* ==================== 🎯 ৪. ডাইনামিক পেজিনেশন নেভিগেশন কন্ট্রোলস (নতুন ফিউচার ভাই) ==================== */}
+            {/* ==================== 🎯 ৪. ডাইনামিক পেজিনেশন নেভিগেশন কন্ট্রোলস (বড় সাইজ ও মার্জিন ফিক্স ভাই) ==================== */}
+<div className="w-full flex items-center justify-center gap-3 pt-16"> {/* 👈 ওপরে সুন্দর মার্জিন দেওয়া হলো */}
+  
+  {/* Previous Button */}
+  <button
+    disabled={currentPage === 1}
+    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+    className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 transition-all flex items-center justify-center active:scale-95"
+  >
+    <FiChevronLeft size={20} /> {/* 👈 আইকন সাইজ বড় করা হয়েছে */}
+  </button>
+
+  {/* Page Number Buttons */}
+  {[...Array(totalPages)].map((_, index) => {
+    const pageNum = index + 1;
+    return (
+      <button
+        key={pageNum}
+        onClick={() => setCurrentPage(pageNum)}
+        className={`w-12 h-12 rounded-2xl text-xs font-black border transition-all flex items-center justify-center active:scale-95 ${
+          currentPage === pageNum
+            ? "bg-black text-white border-black shadow-md shadow-black/10"
+            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+        }`}
+      >
+        {pageNum}
+      </button>
+    );
+  })}
+
+  {/* Next Button */}
+  <button
+    disabled={currentPage === totalPages}
+    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+    className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 transition-all flex items-center justify-center active:scale-95"
+  >
+    <FiChevronRight size={20} /> {/* 👈 আইকন সাইজ বড় করা হয়েছে */}
+  </button>
+  
+</div>
+          </>
         )}
       </div>
 

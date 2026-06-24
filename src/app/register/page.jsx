@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle, FiImage, FiLock } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { authClient } from "@/lib/auth-client";
@@ -14,9 +14,13 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
+  // 🔒 কনফার্ম পাসওয়ার্ড ট্র্যাক করার জন্য নতুন স্টেট ভাই
+  const [confirmPassword, setConfirmPassword] = useState(""); 
+  const [imageUrl, setImageUrl] = useState(""); 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // 🔒 কনফার্ম পাসওয়ার্ড দেখার জন্য আলাদা হাইড/শো স্টেট ভাই
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false); 
 
   // কাস্টম টোস্ট নোটিফিকেশন স্টেট
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
@@ -34,6 +38,13 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    // 🎯 🔒 সিকিউরিটি চেক: পাসওয়ার্ড দুটি হুবহু মিলছে কিনা তা ভেরিফাই করা হলো ভাই
+    if (password !== confirmPassword) {
+      showNotification("❌ Passwords do not match! Please check again.", "error");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       console.log("Sending registration data to Better-Auth...");
 
@@ -41,9 +52,10 @@ export default function RegisterPage() {
         email: email,
         password: password,
         name: name,
-        role: role, // ✅ মেটাডেটা বাদ দিয়ে সরাসরি role পাস করা হলো
+        image: imageUrl.trim(), 
+        role: "user", 
         metadata: {
-          role: role // ✅ ওল্ড স্ট্রাকচার ব্যাকআপের জন্য মেটাডাটায়ও role পাঠানো হলো
+          role: "user" 
         },
         disableAutoLogin: true
       });
@@ -62,20 +74,20 @@ export default function RegisterPage() {
         redirect: false
       });
 
-      // কাস্টম সাকসেস টোস্ট মেসেজ
-      showNotification(`🎉 Success! Account created successfully as a ${role === 'reader' ? 'Reader' : 'Librarian'}.`, "success");
+      showNotification("🎉 Success! Account created successfully.", "success");
 
-      // ব্রাউজার যেন ক্যাশ থেকে ডেটা পুশ করতে না পারে, সেজন্য ফর্মটিকে সম্পূর্ণ হার্ড রিসেট করা হলো
+      // ফর্ম হার্ড রিসেট
       e.target.reset();
 
       // রিয়্যাক্ট স্টেটগুলো খালি (Reset) করে দেওয়া হলো
       setName("");
       setEmail("");
       setPassword("");
-      setRole("reader");
+      setConfirmPassword(""); // কনফার্ম পাসওয়ার্ড স্টেট রিসেট ভাই
+      setImageUrl(""); 
       setIsLoading(false);
 
-      // সেশন ফ্রি করে ইউজারকে ফ্রেশভাবে লগইন পেজে পাঠানো হচ্ছে
+      // লগইন পেজে রিডাইরেকশন
       setTimeout(() => {
         router.push("/login");
         router.refresh();
@@ -144,9 +156,6 @@ export default function RegisterPage() {
             <button type="button" onClick={handleGoogleSignUp} className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all border border-gray-200 lg:border-none shadow-sm">
               <FcGoogle size={18} /> <span>Sign up with Google</span>
             </button>
-            <button type="button" className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-xl text-sm transition-all shadow-sm">
-              <FaFacebook size={18} /> <span>Sign up with Facebook</span>
-            </button>
           </div>
 
           <div className="relative flex items-center justify-center my-5">
@@ -161,19 +170,46 @@ export default function RegisterPage() {
             <div className="space-y-1">
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" autoComplete="new-email" className="w-full px-4 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
             </div>
+            
+            {/* প্রোফাইল পিকচার ইমেজ ইউআরএল ফিল্ড */}
             <div className="space-y-1 relative">
-              <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full pl-4 pr-10 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white font-medium cursor-pointer appearance-none">
-                <option value="user">Reader / Student (Buy & Borrow)</option>
-                <option value="librarian">Librarian / Book Owner (List Books)</option>
-              </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 pointer-events-none text-xs">▼</span>
+              <input 
+                type="url" 
+                value={imageUrl} 
+                onChange={(e) => setImageUrl(e.target.value)} 
+                placeholder="Profile Image URL (Optional)" 
+                autoComplete="new-image-url" 
+                className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" 
+              />
+              <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 pointer-events-none">
+                <FiImage size={16} />
+              </span>
             </div>
+
+            {/* পাসওয়ার্ড ফিল্ড */}
             <div className="space-y-1 relative">
               <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete="new-password" className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300">
                 {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
               </button>
             </div>
+
+            {/* 🎯 🔒 নতুন মেগা ফিচার: কনফার্ম পাসওয়ার্ড ইনপুট ফিল্ড ভাই */}
+            <div className="space-y-1 relative">
+              <input 
+                type={showConfirmPassword ? "text" : "password"} 
+                required 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                placeholder="Confirm Password" 
+                autoComplete="new-password-confirm" 
+                className="w-full pl-4 pr-11 py-2.5 bg-slate-50 lg:bg-zinc-900 border border-slate-200 lg:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all text-slate-900 lg:text-white placeholder:text-slate-400 lg:placeholder:text-zinc-500 font-medium" 
+              />
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 lg:text-zinc-500 hover:text-slate-600 lg:hover:text-zinc-300">
+                {showConfirmPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+              </button>
+            </div>
+
             <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 py-3 bg-[#ff3366] hover:bg-[#e62e5c] text-white font-bold rounded-full shadow-md transition-all active:scale-[0.98] disabled:opacity-70 mt-5 text-sm">
               {isLoading ? "Creating Account..." : "Register"}
             </button>
@@ -187,7 +223,7 @@ export default function RegisterPage() {
         </motion.div>
       </div>
 
-      {/* ডান কলাম: ব্যানার ইমেজ গ্রিড */}
+      {/* ডান কলাম: Banner Image Grid */}
       <div className="hidden lg:flex lg:col-span-6 flex-col justify-center px-10 xl:px-16 bg-white dark:bg-zinc-900 rounded-l-[120px] xl:rounded-l-[150px] py-10 select-none z-10 order-first lg:order-last">
         <div className="max-w-xl mx-auto w-full">
           <span className="text-[11px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-full">START YOUR JOURNEY TODAY</span>

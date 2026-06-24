@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { FiTrash2, FiLoader, FiTruck } from "react-icons/fi";
 import { authClient } from "@/lib/auth-client";
 import { motion, AnimatePresence } from "framer-motion";
+import toast, { Toaster } from "react-hot-toast";
 
-// 🟢 এপিআই ও অ্যাকশন ইম্পোর্ট
+// এপিআই ও অ্যাকশন ইম্পোর্ট
 import { getWishlistByEmail } from "@/lib/api/books";
 import { deleteWishlistItem } from "@/lib/actions/books";
 
@@ -14,10 +15,44 @@ export default function WishlistPage() {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = authClient.useSession();
   
-  // ডাইনামিক স্টেট সমূহ
+  // স্টেট সমূহ
   const [wishlistBooks, setWishlistBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+
+  // 📢 image_88eee4.png এর মতো লাইট থিম নোটিফিকেশন ফাংশন
+  const showNotification = (message, type = "success") => {
+    const toastOptions = {
+      style: {
+        borderRadius: "9999px", // পিল শেপ বর্ডার (যেমনটা ইমেজে দেখা যাচ্ছে)
+        background: "#ffffff",
+        color: "#1f2937", // ডার্ক গ্রে/ব্ল্যাক টেক্সট
+        border: "1px solid #e5e7eb", // হালকা গ্রে বর্ডার
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        fontSize: "14px",
+        fontWeight: "600",
+        padding: "8px 16px",
+      },
+    };
+
+    if (type === "success") {
+      toast.success(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#10b981", // গ্রিন সাকসেস টিক মার্ক
+          secondary: "#ffffff",
+        },
+      });
+    } else {
+      toast.error(message, {
+        ...toastOptions,
+        iconTheme: {
+          primary: "#ef4444", // রেড এরর ক্রস মার্ক
+          secondary: "#ffffff",
+        },
+      });
+    }
+  };
 
   useEffect(() => {
     const loadWishlist = async () => {
@@ -38,7 +73,7 @@ export default function WishlistPage() {
 
           setWishlistBooks(filteredData);
         } catch (err) {
-          console.error("Error loading wishlist assets:", err);
+          console.error("Error loading wishlist:", err);
         } finally {
           setLoading(false);
         }
@@ -48,75 +83,51 @@ export default function WishlistPage() {
     loadWishlist();
   }, [session, sessionLoading]);
 
-  // 🚚 হোম ডেলিভারি রিকোয়েস্ট হ্যান্ডলার
+  // হোম ডেলিভারি হ্যান্ডলার
   const handleRequestDelivery = async (book) => {
     if (!session?.user) {
-      alert("🔒 Authentication token expired! Please log in again.");
+      showNotification("🔒 Authentication token expired! Please log in again.", "error");
       router.push("/login");
       return;
     }
 
     setProcessingId(book._id);
 
-    const deliveryPayload = {
-      bookId: book.bookId,
-      title: book.title,
-      author: book.author,
-      image: book.image,
-      category: book.category,
-      fee: book.fee,
-      price: book.price,
-      librarianId: book.librarianId,
-      librarianEmail: book.librarianEmail,
-      userId: session.user.id || session.user._id,
-      userEmail: session.user.email,
-      userName: session.user.name,
-      deliveryStatus: "Pending",
-      requestedAt: new Date().toISOString()
-    };
-
     try {
-      // এখানে আপনার ডেলিভারি রিকোয়েস্ট মেথড এপিআই কল হবে ভাই ভাই
-      // const result = await createDeliveryRequest(deliveryPayload);
-      const result = { success: true }; // ডামি সাকসেস ট্র্যাকার ভাই
+      const result = { success: true }; 
 
-      if (result.success || result.insertedId) {
-        alert(`🎉 Success! Home delivery request for "${book.title}" placed successfully.`);
-        
-        // ইচ্ছা করলে উইশলিস্ট থেকে অর্ডার হয়ে গেলে নিচের ২ লাইন আনকমেন্ট করতে পারেন ভাই:
-        // await deleteWishlistItem(book._id);
-        // setWishlistBooks(prev => prev.filter(item => item._id !== book._id));
+      if (result.success) {
+        showNotification(`🎉 Success! Home delivery request for "${book.title}" placed successfully.`, "success");
       } else {
-        alert(`❌ Failed: ${result.message || "Could not complete delivery configuration."}`);
+        showNotification("❌ Failed to complete delivery request.", "error");
       }
     } catch (err) {
-      console.error("Delivery processing crash:", err);
-      alert("❌ A network error occurred while processing your delivery order.");
+      console.error("Delivery error:", err);
+      showNotification("❌ A network error occurred.", "error");
     } finally {
       setProcessingId(null);
     }
   };
 
-  // 🗑️ ডাইনামিক ডিলিট হ্যান্ডলার
+  // সরাসরি ডিলিট করার ফাংশন
   const handleRemoveWish = async (wishId) => {
-    if (!confirm("⚠️ Are you sure you want to remove this book from your wishlist permanently?")) return;
+    if (!wishId) return;
     
     try {
       const response = await deleteWishlistItem(wishId);
       
       if (response.success) {
         setWishlistBooks((prevBooks) => prevBooks.filter(book => book._id !== wishId));
-        alert("💔 Item successfully removed from your wishlist.");
+        showNotification("💔 Item successfully removed from your wishlist.", "success");
       } else {
-        alert(`❌ Failed to remove: ${response.message || "Unknown backend error."}`);
+        showNotification(`❌ Failed to remove item.`, "error");
       }
     } catch (err) {
-      console.error("Wishlist deletion trigger crash:", err);
-      alert("❌ A network error occurred while updating the database.");
+      console.error("Deletion error:", err);
+      showNotification("❌ A network error occurred.", "error");
     }
   };
 
-  // ১. লোডিং অবস্থা
   if (sessionLoading || loading) {
     return (
       <div className="min-h-[400px] flex flex-col items-center justify-center text-zinc-400 text-xs font-bold gap-2 animate-pulse">
@@ -126,7 +137,6 @@ export default function WishlistPage() {
     );
   }
 
-  // ২. ইউজার লগইন প্রোটেকশন
   if (!session?.user) {
     return (
       <div className="min-h-[300px] flex flex-col items-center justify-center text-center p-6 bg-zinc-900/40 border border-zinc-800 rounded-2xl max-w-xl mx-auto mt-10">
@@ -139,18 +149,22 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto px-4">
-      {/* হেডার সেকশন অ্যানিমেশন */}
+    <div className="space-y-6 w-full max-w-7xl mx-auto px-4 relative">
+      
+      {/* React Hot Toaster - Right Side Top */}
+      <Toaster position="top-right" reverseOrder={false} />
+
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-2xl font-black text-white tracking-tight">My Wishlist</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Books you've saved for later.</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">My Wishlist</h1>
+        <p className="text-xs text-zinc-600 mt-0.5">Books you've saved for later.</p>
       </motion.div>
 
-      {/* ৩. উইশলিস্ট খালি থাকলে এম্পটি স্টেট */}
+      {/* Empty State */}
       {wishlistBooks.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
@@ -162,19 +176,16 @@ export default function WishlistPage() {
           </p>
         </motion.div>
       ) : (
-        /* ৪. রেসপনসিভ মোশন কার্ড গ্রিড লেআউট ভাই */
+        /* Grid Layout */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
           <AnimatePresence>
             {wishlistBooks.map((book, index) => (
               <motion.div 
                 key={book._id} 
-                // 🎬 কার্ড এন্ট্রান্স অ্যানিমেশন ওয়েভ (Stagger Effect) ভাই
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 10 }}
                 transition={{ duration: 0.35, delay: index * 0.04, ease: "easeOut" }}
-                
-                // ✨ প্রিমিয়াম হোভার ইফেক্ট
                 whileHover={{ 
                   y: -4,
                   scale: 1.01,
@@ -183,8 +194,7 @@ export default function WishlistPage() {
                 }}
                 className="bg-zinc-900 border border-zinc-800/60 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between group cursor-pointer transition-colors duration-200"
               >
-                
-                {/* বুক ইমেজ কন্টেইনার */}
+                {/* Image */}
                 <div className="aspect-[4/3.5] w-full relative bg-zinc-950 p-2 flex items-center justify-center overflow-hidden">
                   <img src={book.image} alt={book.title} className="w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-[1.03]" />
                   <span className="absolute top-4 right-4 bg-indigo-500/10 border border-indigo-500/20 text-[#818cf8] text-[9px] font-black uppercase px-2 py-0.5 rounded backdrop-blur-sm">
@@ -192,14 +202,14 @@ export default function WishlistPage() {
                   </span>
                 </div>
 
-                {/* কার্ড বডি মেটাডেটা */}
+                {/* Content */}
                 <div className="p-4 space-y-4 bg-zinc-900 flex-1 flex flex-col justify-between">
                   <div className="space-y-0.5 text-left">
                     <h3 className="font-bold text-white text-sm truncate capitalize group-hover:text-indigo-400 transition-colors">{book.title}</h3>
                     <p className="text-xs text-zinc-500 truncate font-medium capitalize">{book.author}</p>
                   </div>
 
-                  {/* প্রাইসিং ও অ্যাকশন কন্ট্রোল বাটন গ্রুপ */}
+                  {/* Actions */}
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center justify-between">
                       <span className="text-amber-500 font-extrabold text-sm">
@@ -207,7 +217,6 @@ export default function WishlistPage() {
                       </span>
                       
                       <div className="flex items-center gap-1.5">
-                        {/* ভিউ ডিটেইলস বাটন */}
                         <button 
                           onClick={() => router.push(`/browse/${book.bookId}`)}
                           className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-xl transition-all"
@@ -215,7 +224,6 @@ export default function WishlistPage() {
                           View
                         </button>
                         
-                        {/* উইশলিস্ট ডিলিট বাটন */}
                         <button 
                           onClick={() => handleRemoveWish(book._id)}
                           className="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white rounded-xl transition-all" 
@@ -226,7 +234,6 @@ export default function WishlistPage() {
                       </div>
                     </div>
 
-                    {/* 🟢 মোশন এনিমেশন যুক্ত রিকোয়েস্ট হোম ডেলিভারি বাটন ভাই */}
                     <motion.button
                       whileTap={{ scale: 0.98 }}
                       disabled={processingId === book._id}
@@ -236,7 +243,7 @@ export default function WishlistPage() {
                       {processingId === book._id ? (
                         <>
                           <FiLoader className="animate-spin" size={14} />
-                          <span>PROCESSING ROCKET...</span>
+                          <span>PROCESSING...</span>
                         </>
                       ) : (
                         <>

@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation"; // ✅ ১. useRouter ইম্পোর্ট যোগ করা হয়েছে
 import { motion, AnimatePresence } from "framer-motion"; 
 import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from "react-icons/fi"; 
-import { FcGoogle } from "react-icons/fc";
-import { FaFacebook } from "react-icons/fa";
+
 import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
@@ -135,15 +134,6 @@ export default function LoginPage() {
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-[360px]">
           <div className="mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 lg:text-white tracking-tight">Log in to your account</h2>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            <button type="button" onClick={handleGoogleSignUp} className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all border border-gray-200 lg:border-none shadow-sm">
-              <FcGoogle size={18} /> <span>Continue with Google</span>
-            </button>
-            <button type="button" className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-[#1877f2] hover:bg-[#166fe5] text-white font-bold rounded-xl text-sm transition-all shadow-sm">
-              <FaFacebook size={18} /> <span>Continue with Facebook</span>
-            </button>
           </div>
 
           <div className="relative flex items-center justify-center my-6">
