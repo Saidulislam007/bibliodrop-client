@@ -1,16 +1,28 @@
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL; 
 
 
-export const getBooks = async (page = 1, limit = 6) => {
+export const getBooks = async (search = "", category = "", page = 1, limit = 6) => {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
-    
-    // কুয়েরি প্যারামিটার হিসেবে page এবং limit পাঠানো হচ্ছে ভাই
-    const res = await fetch(`${baseUrl}/books?page=${page}&limit=${limit}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store'
-    });
+    // 💡 আপনি লোকালহোস্টে টেস্ট করতে চাইলে নিচের লিংকটি সাময়িকভাবে ব্যবহার করতে পারেন:
+    // const baseUrl = `http://localhost:5000/api/books`;
+    const baseUrl = `https://bibliodrop-server.vercel.app/api/books`;
+
+    // ব্যাকএন্ডে ডাইনামিক কুয়েরি প্যারামিটার পাঠানো হচ্ছে
+    const res = await fetch(
+      `${baseUrl}?page=${page}&limit=${limit}&search=${search}&category=${category}`, 
+      { cache: 'no-store' }
+    );
+
+    if (!res.ok) {
+      console.error(`Server returned status: ${res.status}`);
+      return { books: [], totalPages: 1 };
+    }
+
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      console.error("Expected JSON but received HTML/Text.");
+      return { books: [], totalPages: 1 }; 
+    }
     
     return await res.json();
   } catch (error) {
