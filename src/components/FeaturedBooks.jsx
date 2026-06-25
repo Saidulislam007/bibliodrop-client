@@ -157,16 +157,24 @@ export default function FeaturedBooks() {
                   </p>
                 </div>
 
-                {/* বাটন অ্যাকশন */}
+                {/* ⚙️ বাটন অ্যাকশন রেন্ডার */}
                 <div className="flex items-center gap-2 pt-2 w-full">
-                  <button 
-                    disabled={book.stockQuantity <= 0}
-                    className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/10 transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap"
+                  
+                  {/* 🟢 ফিক্সড: Request Delivery বাটনে ক্লিক করলে এখন সরাসরি ডিটেইলস পেজে নিয়ে যাবে ভাই */}
+                  <Link 
+                    href={`/books/${book._id}`}
+                    className="flex-1"
                   >
-                    <FiTruck size={14} />
-                    <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
-                  </button>
+                    <button 
+                      disabled={book.stockQuantity <= 0}
+                      className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/10 transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap"
+                    >
+                      <FiTruck size={14} />
+                      <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
+                    </button>
+                  </Link>
 
+                  {/* 👁️ 🟢 ফিক্সড: ডিটেইলস আইকনে ক্লিক করলেও ডিটেইলস পেজে যাবে ভাই */}
                   <Link 
                     href={`/books/${book._id}`}
                     className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-xl transition-all active:scale-95 flex-shrink-0"
