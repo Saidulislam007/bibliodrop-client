@@ -105,7 +105,7 @@ export default function RegisterPage() {
       console.log("Initiating Google Sign-Up...");
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "http://localhost:3000/login"
+        callbackURL: "/login"
       });
     } catch (error) {
       console.error("Google Sign-Up Error:", error);

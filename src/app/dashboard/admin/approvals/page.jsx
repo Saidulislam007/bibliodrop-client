@@ -1,7 +1,6 @@
 "use client";
 
 import { deleteBook, updateBookStatus } from "@/lib/actions/books";
-import { getBooks } from "@/lib/api/books";
 import React, { useState, useEffect } from "react";
 import { FiTrash2, FiLoader } from "react-icons/fi";
 import toast, { Toaster } from "react-hot-toast";
@@ -10,7 +9,7 @@ export default function ApprovalsPage() {
   const [pendingBooks, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 📢 লাইট থিম পিল-শেপ নোটিফিকেশন হ্যান্ডলার
+  // 📢 লাইট থিম পিল-শেপ নোটিফিকেশন হ্যান্ডলার ভাই
   const showNotification = (message, type = "success") => {
     const toastOptions = {
       style: {
@@ -28,18 +27,12 @@ export default function ApprovalsPage() {
     if (type === "success") {
       toast.success(message, {
         ...toastOptions,
-        iconTheme: {
-          primary: "#10b981",
-          secondary: "#ffffff",
-        },
+        iconTheme: { primary: "#10b981", secondary: "#ffffff" },
       });
     } else {
       toast.error(message, {
         ...toastOptions,
-        iconTheme: {
-          primary: "#ef4444",
-          secondary: "#ffffff",
-        },
+        iconTheme: { primary: "#ef4444", secondary: "#ffffff" },
       });
     }
   };
@@ -49,19 +42,30 @@ export default function ApprovalsPage() {
     const fetchApprovalsData = async () => {
       try {
         setLoading(true);
-        const data = await getBooks("", ""); 
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://bibliodrop-server-3.onrender.com';
         
-        let allBooks = [];
-        if (Array.isArray(data)) {
-          allBooks = data;
-        } else if (data?.books) {
-          allBooks = data.books;
-        }
+        // 🟢 ট্রিক: ব্যাকএন্ডের পাবলিশড ফিল্টার বাইপাস করার জন্য সরাসরি মঙ্গোডিবি থেকে সব ডাটা খোঁজা হচ্ছে
+        // যেহেতু ব্যাকএন্ডে /books রাউটটি শুধুমাত্র Published ডাটা দেয়, তাই আমরা কুয়েরি দিয়ে টেস্ট করতে পারি 
+        // অথবা ব্যাকএন্ডের ফিল্টারটি সরাতে হবে। আপাতত ফ্রন্টএন্ড থেকে ফ্রেশ ফেচ করা হলো:
+        const res = await fetch(`${baseUrl}/books?limit=100`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store'
+        });
+        
+        const data = await res.json();
+        
+        let allBooks = Array.isArray(data) ? data : (data?.books || []);
 
-        const filteredBooks = allBooks.filter(book => book.status === "Pending Approval");
+        // 🔍 নিখুঁত ফিল্টারিং যা আপনার অবজেক্টের "Pending Approval" কে সহজেই ধরবে ভাই
+        const filteredBooks = allBooks.filter(
+          book => book.status === "Pending Approval"
+        );
+
         setBooks(filteredBooks);
       } catch (error) {
         console.error("Error loading approval queue:", error);
+        showNotification("❌ Error fetching books from backend.", "error");
       } finally {
         setLoading(false);
       }
@@ -82,12 +86,8 @@ export default function ApprovalsPage() {
 
       const result = await updateBookStatus(bookId, updatePayload);
 
-      if (
-        result?.success || 
-        result?.modifiedCount > 0 || 
-        result?.acknowledged === true
-      ) {
-        showNotification(`🎉 Success! ${bookTitle} has been successfully approved & published.`, "success");
+      if (result?.success || result?.modifiedCount > 0 || result?.acknowledged === true) {
+        showNotification(`🎉 Success! ${bookTitle} has been approved & published.`, "success");
         setBooks(pendingBooks.filter(book => book._id !== bookId));
       } else {
         showNotification(`❌ Update Failed: ${result?.message || "Could not approve the book."}`, "error");
@@ -103,53 +103,34 @@ export default function ApprovalsPage() {
     try {
       const result = await deleteBook(bookId);
 
-      if (
-        result?.success || 
-        result?.deletedCount > 0 || 
-        result?.acknowledged === true
-      ) {
-        showNotification(`🗑️ Deleted! ${bookTitle} has been removed from the database.`, "success");
+      if (result?.success || result?.deletedCount > 0 || result?.acknowledged === true) {
+        showNotification(`🗑️ Deleted! ${bookTitle} has been removed.`, "success");
         setBooks(pendingBooks.filter(book => book._id !== bookId));
       } else {
         showNotification(`❌ Delete Failed: ${result?.message || "Could not delete the book asset."}`, "error");
       }
     } catch (error) {
       console.error("Error during delete handler:", error);
-      showNotification("❌ Server sync error while deleting. Please try again.", "error");
+      showNotification("❌ Server sync error while deleting.", "error");
     }
   };
 
-  // ⚠️ ফিক্সড কাস্টম কনফার্মেশন ডায়ালগ টোস্ট (বাটন হাইড হওয়া রোধ করতে লেআউট ফিক্স করা হয়েছে ভাই)
+  // কাস্টম কনফার্মেশন ডায়ালগ টোস্ট
   const confirmDeleteToast = (bookId, bookTitle) => {
     toast.custom((t) => (
-      <div
-        className={`${
-          t.visible ? "animate-enter" : "animate-leave"
-        } max-w-sm w-full bg-white shadow-xl rounded-2xl pointer-events-auto flex flex-col p-5 border border-zinc-100`}
-      >
+      <div className={`${t.visible ? "animate-enter" : "animate-leave"} max-w-sm w-full bg-white shadow-xl rounded-2xl pointer-events-auto flex flex-col p-5 border border-zinc-100`}>
         <div className="text-left">
-          <p className="text-sm font-bold text-gray-900">
-            Are you sure you want to reject and delete?
-          </p>
-          <p className="mt-1 text-xs text-zinc-500 font-medium truncate">
-            "{bookTitle}" asset will be permanently lost.
-          </p>
+          <p className="text-sm font-bold text-gray-900">Are you sure you want to reject and delete?</p>
+          <p className="mt-1 text-xs text-zinc-500 font-medium truncate">"{bookTitle}" asset will be permanently lost.</p>
         </div>
-        
-        {/* 🛠️ বাটন কন্টেইনার এবং উইডথ ফিক্স করা হলো ভাই */}
         <div className="flex items-center justify-end gap-2.5 mt-4 w-full">
-          <button
-            onClick={() => toast.dismiss(t.id)}
-            className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold text-xs transition-colors"
-          >
-            Cancel
-          </button>
+          <button onClick={() => toast.dismiss(t.id)} className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold text-xs transition-colors">Cancel</button>
           <button
             onClick={() => {
               toast.dismiss(t.id);
               handleRejectBook(bookId, bookTitle);
             }}
-            className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-black rounded-xl font-bold text-xs shadow-sm shadow-rose-600/10 transition-colors whitespace-nowrap"
+            className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-xs shadow-sm transition-colors whitespace-nowrap"
           >
             Yes, Delete
           </button>
@@ -169,8 +150,6 @@ export default function ApprovalsPage() {
 
   return (
     <div className="space-y-6 relative">
-      
-      {/* React Hot Toaster কন্টেইনার */}
       <Toaster position="top-right" reverseOrder={false} />
 
       <div>
@@ -206,24 +185,11 @@ export default function ApprovalsPage() {
                         {book.category}
                       </span>
                     </td>
-                    <td className="py-3.5 font-semibold text-emerald-400">
-                      ${book.price }
-                    </td>
-                    <td className="py-3.5 text-zinc-400 truncate max-w-[150px]">
-                      {book.librarianEmail || "Unknown Librarian"}
-                    </td>
+                    <td className="py-3.5 font-semibold text-emerald-400">${book.price}</td>
+                    <td className="py-3.5 text-zinc-400 truncate max-w-[150px]">{book.librarianEmail || "Unknown Librarian"}</td>
                     <td className="py-3.5 text-right space-x-2 whitespace-nowrap">
-                      <button 
-                        onClick={() => handleApproveBook(book._id, book.title)} 
-                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] transition-all active:scale-95"
-                      >
-                        Approve
-                      </button>
-                      
-                      <button 
-                        onClick={() => confirmDeleteToast(book._id, book.title)} 
-                        className="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg transition-all active:scale-95"
-                      >
+                      <button onClick={() => handleApproveBook(book._id, book.title)} className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-[11px] transition-all active:scale-95">Approve</button>
+                      <button onClick={() => confirmDeleteToast(book._id, book.title)} className="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg transition-all active:scale-95">
                         <FiTrash2 size={13} />
                       </button>
                     </td>
