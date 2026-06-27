@@ -32,10 +32,10 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="w-full bg-white text-slate-800 font-sans min-h-screen selection:bg-indigo-500 selection:text-white">
+    <div className="w-full mt-[-65] bg-white text-slate-800 font-sans min-h-screen selection:bg-indigo-500 selection:text-white">
       
       {/* ==================== ১. টপ হিরো ব্যানার সেকশন (স্ক্রিনশটের পার্পল ভাইব ও কার্ভ) ==================== */}
-      <div className="w-full bg-black text-white py-16 sm:py-24 px-4 sm:px-6 lg:px-8 text-center relative border-b-8 border-indigo-600/20">
+      <div className="w-full bg-black text-white py-16 sm:py-24 px-4 sm:px-6 lg:px-8 lg:pt-30 text-center relative border-b-8 border-indigo-600/20">
         {/* ব্যাকগ্রাউন্ড সূক্ষ্ম গ্লো */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#693975] via-[#522d5b] to-[#401f48] -z-10" />
         
@@ -93,25 +93,7 @@ export default function AboutPage() {
         ))}
       </div>
 
-      {/* ==================== ৩. বটম ট্রাস্ট অ্যান্ড স্ট্যাটস বার (SaaS টাচ) ==================== */}
-      <div className="w-full bg-slate-50 border-t border-slate-100 py-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black text-indigo-600">10k+</p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Readers</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black text-indigo-600">300+</p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Local Libraries</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-3xl sm:text-4xl font-black text-indigo-600">24/7</p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Automated Logistics</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
     </div>
   );

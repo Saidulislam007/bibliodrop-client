@@ -64,7 +64,7 @@ export default function BookReviewsContainer({ currentBookId }) {
                   ))}
                 </div>
               </div>
-              <p className="text-sm text-gray-600 italic">"{rev.comment}"</p>
+              <p className="text-sm text-gray-600 italic">{rev.comment}</p>
             </div>
           ))}
         </div>

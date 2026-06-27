@@ -12,7 +12,7 @@ const getAuthToken = () => {
 // ==========================================
 // 📚 ১. GET ALL BOOKS
 // ==========================================
-export const getBooks = async (page = 1, limit = 6) => {
+export const getBooks = async (page = 1, limit = 9999) => { // 👈 ডিফল্ট পেজ 1 এবং লিমিট বাড়িয়ে 9999 করা হলো
   try {
     const res = await fetch(`${baseUrl}/books?page=${page}&limit=${limit}`, {
       method: 'GET',

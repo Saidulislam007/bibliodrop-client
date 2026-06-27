@@ -31,7 +31,7 @@ export default function ContactPage() {
 
   return (
     // মেইন কন্টেইনার (লগইন/রেজিস্টার থিমের সাথে ম্যাচ রেখে কিলার স্প্লিট ভিউ)
-    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans overflow-hidden">
+    <div className="flex-1 mt-[-65] grid grid-cols-1 lg:grid-cols-12 bg-black dark:bg-zinc-950 min-h-[calc(100vh-64px)] w-full font-sans overflow-hidden">
       
       {/* ==================== বাম কলাম: ব্র্যান্ড হিরো প্যানেল (নতুন ইউনিক লুক) ==================== */}
       <div className="hidden lg:flex lg:col-span-5 flex-col justify-between px-12 xl:px-16 bg-white dark:bg-zinc-900 rounded-r-[120px] xl:rounded-r-[150px] py-16 select-none z-10 shadow-[25px_0_50px_rgba(0,0,0,0.3)]">

@@ -16,29 +16,25 @@ export default function BrowseBooksPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("latest");
 
-  // 🔢 অতিরিক্ত পেজিনেশন স্টেট (UI অপরিবর্তিত রাখতে ব্যাকগ্রাউন্ডে কাজ করবে ভাই)
+  // 🔢 পেজিনেশন স্টেট
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 6; // প্রতি পেজে ৬টি করে আইটেম লোড হবে
 
   const categories = ["All", "History", "Romance", "Mystery", "Sci-Fi", "Academic"];
 
-  // 🔄 ডাটাবেজ থেকে রিয়েল ডাটা ফেচ করা (পেজিনেশন কুয়েরি সিঙ্ক করা হলো ভাই)
+  // 🔄 ডাটাবেজ থেকে রিয়েল ডাটা ফেচ করা (সব বই একসাথে এনে ক্লায়েন্ট সাইড পেজিনেশন করা হচ্ছে ভাই)
   useEffect(() => {
     const loadBooks = async () => {
       try {
         setLoading(true);
-        // 🎯 এপিআই মেথডে আপনার কারেন্ট পেজ এবং লিমিট পাস করা হলো
-        const data = await getBooks(currentPage, itemsPerPage); 
+        // সব বই একসাথে আনার জন্য লিমিট বাড়িয়ে কল করা হলো যাতে সার্চ/ফিল্টার পারফেক্ট কাজ করে
+        const data = await getBooks(1, 9999); 
         
         let fetchedBooks = Array.isArray(data) ? data : data?.books || [];
         
         // 🛡️ শুধুমাত্র "status": "Published" থাকা বইগুলো ফিল্টার করা হলো ভাই
         const publicCatalog = fetchedBooks.filter(book => book.status === "Published");
         setBooks(publicCatalog);
-        
-        // 🎯 ব্যাকঅ্যান্ড থেকে আসা টোটাল পেজ সংখ্যা ডাইনামিক সেট হবে
-        setTotalPages(data?.totalPages || 1);
       } catch (err) {
         console.error("Catalog load error:", err);
       } finally {
@@ -46,7 +42,7 @@ export default function BrowseBooksPage() {
       }
     };
     loadBooks();
-  }, [currentPage]); // 👈 প্রতিবার পেজ নম্বর চেঞ্জ হলে নতুন ডাটা এক টানে আসবে ভাই
+  }, []); // 👈 এক টানে সব বই চলে আসবে, বার বার এপিআই হিট হবে না
 
   // ⚙️ ক্লায়েন্ট সাইড সার্চ, ফিল্টারিং ও সর্টিং লজিক
   const filteredBooks = books
@@ -62,11 +58,24 @@ export default function BrowseBooksPage() {
       return new Date(b.dateAdded || b.publishedAt) - new Date(a.dateAdded || a.publishedAt);
     });
 
+  // 📊 ফিল্টার করা বইয়ের ওপর ভিত্তি করে ডাইনামিক টোটাল পেজ হিসাব (যেমন: ১, ২, ３, ৪)
+  const totalPages = Math.max(Math.ceil(filteredBooks.length / itemsPerPage), 1);
+
+  // ✂️ কারেন্ট পেজের জন্য নির্দিষ্ট ৬টি বই স্লাইস (Slice) করা হলো
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentPaginatedBooks = filteredBooks.slice(indexOfFirstItem, indexOfLastItem);
+
+  // সার্চ বা ক্যাটাগরি চেঞ্জ হলে পেজ নম্বর অটোমেটিক ১ এ রিসেট করার জন্য সেফগার্ড
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, sortBy]);
+
   return (
-    <div className="w-full bg-white text-slate-800 font-sans min-h-screen pb-20">
+    <div className="w-full mt-[-65] bg-white text-slate-800 font-sans min-h-screen pb-20">
       
       {/* ==================== ১. টপ হিরো ব্যানার সেকশন ==================== */}
-      <div className="w-full bg-black text-white py-14 sm:py-18 px-4 sm:px-6 lg:px-8 relative overflow-hidden isolate">
+      <div className="w-full bg-black text-white py-14 sm:py-18 px-4 sm:px-6 lg:px-8 lg:pt-30 relative overflow-hidden isolate">
         <div className="absolute top-0 right-1/4 w-72 h-72 bg-[#0091ff]/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
         
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
@@ -89,8 +98,8 @@ export default function BrowseBooksPage() {
             </div>
             <div className="w-px bg-zinc-800 h-10 my-auto" />
             <div className="text-center px-4">
-              <p className="text-xl font-black text-white">{books.length}+</p>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Published Assets</p>
+              <p className="text-xl font-black text-white">{filteredBooks.length}+</p>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Filtered Assets</p>
             </div>
           </div>
         </div>
@@ -143,7 +152,7 @@ export default function BrowseBooksPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {loading ? (
           <Loader className="mx-auto my-20 text-[#0091ff] w-12 h-12 animate-spin" />
-        ) : filteredBooks.length === 0 ? (
+        ) : currentPaginatedBooks.length === 0 ? (
           <div className="w-full text-center py-20 text-slate-400 text-sm font-medium border border-dashed border-slate-200 rounded-2xl">
             No active book assets recorded in this specific pipeline channel token.
           </div>
@@ -151,7 +160,7 @@ export default function BrowseBooksPage() {
           <>
             <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
               <AnimatePresence mode="popLayout">
-                {filteredBooks.map((book) => {
+                {currentPaginatedBooks.map((book) => {
                   const isOutOfStock = (book.stockQuantity || 0) < 1;
                   return (
                     <motion.div
@@ -202,7 +211,7 @@ export default function BrowseBooksPage() {
                         <div className="pt-2 flex items-center gap-2">
                           <Link 
                             href={`/browse/${book._id}`}
-                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#0091ff] hover:bg-[#007be6] text-white text-xs font-bold rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#0091ff] hover:bg-[#007be6] text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-[0.98]"
                           >
                             <FiTruck size={13} />
                             <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
@@ -222,47 +231,46 @@ export default function BrowseBooksPage() {
               </AnimatePresence>
             </motion.div>
 
-            {/* ==================== 🎯 ৪. ডাইনামিক পেজিনেশন নেভিগেশন কন্ট্রোলস (নতুন ফিউচার ভাই) ==================== */}
-            {/* ==================== 🎯 ৪. ডাইনামিক পেজিনেশন নেভিগেশন কন্ট্রোলস (বড় সাইজ ও মার্জিন ফিক্স ভাই) ==================== */}
-<div className="w-full flex items-center justify-center gap-3 pt-16"> {/* 👈 ওপরে সুন্দর মার্জিন দেওয়া হলো */}
-  
-  {/* Previous Button */}
-  <button
-    disabled={currentPage === 1}
-    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-    className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 transition-all flex items-center justify-center active:scale-95"
-  >
-    <FiChevronLeft size={20} /> {/* 👈 আইকন সাইজ বড় করা হয়েছে */}
-  </button>
+            {/* ==================== 🎯 ৪. ডাইনামিক পেজিনেশন নেভিগেশন কন্ট্রোলস (১, ২, ৩, ৪ বাটন সম্পূর্ণ সচল ভাই) ==================== */}
+            <div className="w-full flex items-center justify-center gap-3 pt-16">
+              
+              {/* Previous Button */}
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 transition-all flex items-center justify-center active:scale-95"
+              >
+                <FiChevronLeft size={20} />
+              </button>
 
-  {/* Page Number Buttons */}
-  {[...Array(totalPages)].map((_, index) => {
-    const pageNum = index + 1;
-    return (
-      <button
-        key={pageNum}
-        onClick={() => setCurrentPage(pageNum)}
-        className={`w-12 h-12 rounded-2xl text-xs font-black border transition-all flex items-center justify-center active:scale-95 ${
-          currentPage === pageNum
-            ? "bg-black text-white border-black shadow-md shadow-black/10"
-            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-        }`}
-      >
-        {pageNum}
-      </button>
-    );
-  })}
+              {/* Page Number Buttons */}
+              {[...Array(totalPages)].map((_, index) => {
+                const pageNum = index + 1;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-12 h-12 rounded-2xl text-xs font-black border transition-all flex items-center justify-center active:scale-95 ${
+                      currentPage === pageNum
+                        ? "bg-black text-white border-black shadow-md shadow-black/10"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
 
-  {/* Next Button */}
-  <button
-    disabled={currentPage === totalPages}
-    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-    className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 transition-all flex items-center justify-center active:scale-95"
-  >
-    <FiChevronRight size={20} /> {/* 👈 আইকন সাইজ বড় করা হয়েছে */}
-  </button>
-  
-</div>
+              {/* Next Button */}
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 transition-all flex items-center justify-center active:scale-95"
+              >
+                <FiChevronRight size={20} />
+              </button>
+              
+            </div>
           </>
         )}
       </div>
