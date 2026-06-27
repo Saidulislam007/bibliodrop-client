@@ -13,7 +13,7 @@ export default function Home() {
     <div className="w-full min-h-screen bg-white text-slate-900 font-sans block relative">
       
       {/* 🟢 পিওর ফিক্স: ব্যানারের হাইটের সাথে ম্যাচ করে প্যারেন্ট ডিভে রেসপনসিভ হাইট লক করে দেওয়া হলো */}
-      <div className="relative z-10 w-full h-[580px] sm:h-[640px] lg:h-[680px] block">
+      <div className="relative m- z-10 w-full h-[80px] sm:h-[640px] lg:h-[780px] block">
         <HeroBanner />
       </div>
       <FeaturedBooks />

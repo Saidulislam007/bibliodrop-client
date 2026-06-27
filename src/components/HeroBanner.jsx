@@ -61,7 +61,7 @@ export default function HeroBanner() {
   }, [nextSlide]);
 
   return (
-    <div className="w-full relative h-[620px] sm:h-[680px] lg:h-[720px] bg-black overflow-hidden font-sans select-none">
+    <div className="w-full mt-[-65] relative h-[620px] sm:h-[680px] lg:h-[820px] bg-black overflow-hidden font-sans select-none">
       
       {/* ================= স্লাইডার কন্টেইনার ================= */}
       <AnimatePresence mode="wait">

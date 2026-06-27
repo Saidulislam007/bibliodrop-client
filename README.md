@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 📚 BiblioDrop - Premium Book Marketplace & Library Management System
 
-## Getting Started
+A modern, full-stack digital book marketplace and library ecosystem. It allows users to browse, borrow, or request home delivery of premium literary assets, while providing librarians and administrators with robust dashboard metrics, analytics, and content override controls.
 
-First, run the development server:
+🌐 **[Live Deployment URL](https://your-live-link.com)** *(Replace with your actual live link ভাই)*
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Key Features
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 💻 User & Dashboard Experience
+* **Ultra-Premium Fullscreen Menu & Bottom Nav:** Seamless transition between desktop sticky sidebars and mobile custom screen-centered overlays or bottom nav navigation. **100% responsive across all mobile, tablet, and desktop viewports.**
+* **Dynamic Analytics Command Dashboard:** Real-time visual trends using animated charts for revenue pipelines and category ratios.
+* **Inline Payment Confirmation Flow:** Sleek, user-friendly interactive confirmation summary card triggered seamlessly before final checkout execution.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🔒 Administration & Security Gateways
+* **Role-Based Access Control (RBAC):** Strict security layers preventing unauthorized access to `Admin Core` or `Librarian Modals` using verified token architectures.
+* **Administrative Listing Override:** Complete control over assets allowing administrators to instantly unpublish, hide, or permanently remove listings from the live database registry.
+* **Advanced Staggered Micro-Interactions:** Smooth page animations, layouts, and card populations powered by a micro-interaction engine.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🛠️ Tech Stack & Dependencies
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Frontend Architecture
+* **Core Framework:** Next.js (Client Component Driven Engine) & JavaScript (ES6+)
+* **Styling Engine:** Tailwind CSS & Styled-Components
+* **UI Component Library:** HeroUI (Formerly NextUI)
+* **Icon Packages:** Lucide React & React Icons
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Backend & Database Layers
+* **Server Runtime:** Express.js (Node.js Environment)
+* **Database Management:** MongoDB (Native Drivers & Cloud Clusters)
+* **Cross-Origin resource sharing:** CORS Engine Middleware
 
-## Deploy on Vercel
+### Authentication & Security Protocols
+* **Core Authentication Framework:** Better-Auth (`mongo-adapter` for structural persistence)
+* **Token Standardization:** JSON Web Tokens (JWT System Layers)
+* **Environment Configuration:** Secure `.env` management schemas
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📦 NPM Packages Registry
+
+Here is the structured manifest of all verified npm dependencies utilized within this application footprint:
+
+### Client-Side Engine Packages
+| Package Name | Purpose / Layer |
+| :--- | :--- |
+| `next` | Production React Framework core layout engine |
+| `@heroui/react` | Premium UI design component generation |
+| `framer-motion` | Staggered animations and hardware-accelerated transitions |
+| `recharts` | Data visualization layer for analytics and trends |
+| `react-hot-toast` | Animated snackbars, error catchers, and action triggers |
+| `lucide-react` | Clean vector layout utility icon repository |
+| `react-icons` | Collective font icon engine (FontAwesome, Feather, etc.) |
+| `styled-components` | CSS-in-JS component-level styling architecture |
+
+### Backend & Middleware Packages
+| Package Name | Purpose / Layer |
+| :--- | :--- |
+| `express` | Fast, unopinionated, minimalist web framework for API routes |
+| `mongodb` | Official MongoDB driver for cluster operations |
+| `better-auth` | Production-ready auth layer with native Mongo adapter bindings |
+| `jsonwebtoken` | Secure stateless transmission token generator |
+| `cors` | Strict cross-origin request routing configurations |
+
+---
+
+## ⚙️ Environment Variables Setup
+
+Before running the server infrastructure, build your local environment files (`.env.local` for client, `.env` for server):
+
+### Client/App Environment
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+BETTER_AUTH_SECRET=your_ultra_secure_better_auth_secret_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000

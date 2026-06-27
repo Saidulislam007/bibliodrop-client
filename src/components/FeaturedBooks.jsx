@@ -75,17 +75,17 @@ export default function FeaturedBooks() {
       {/* সেকশন হেডার */}
       <div className="text-center max-w-xl mx-auto space-y-2 border-b border-slate-200 pb-6">
         <motion.h2 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight"
-        >
-          Featured Books
-        </motion.h2>
+  initial={{ opacity: 0, y: -10 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="text-xl sm:text-2xl lg:text-4xl font-black text-slate-900 tracking-tight"
+>
+  Featured <span className="text-[#0091ff]">Books</span>
+</motion.h2>
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="text-[11px] sm:text-xs text-slate-500 font-medium leading-relaxed"
+          className="text-[11px] sm:text-xs lg:text-sm text-slate-500 font-medium leading-relaxed"
         >
           Explore our latest local library arrivals and hottest literary drops.
         </motion.p>

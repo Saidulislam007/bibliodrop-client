@@ -87,7 +87,7 @@ export default function Navbar() {
   };
 
   return (
-    <div className="sticky top-0 z-50 w-full bg-black dark:bg-zinc-950 px-4 sm:px-6 lg:px-8 py-3 transition-colors duration-300 relative">
+    <div className=" backdrop-blur-xs  border-slate-200/90 sticky top-0 z-50   transition-all duration-300">
       
       {/* 🔔 FRAMER MOTION CUSTOM TOAST UI */}
       {isMounted && (
