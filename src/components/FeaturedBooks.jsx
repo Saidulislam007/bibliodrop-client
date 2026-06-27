@@ -70,7 +70,7 @@ export default function FeaturedBooks() {
   }
 
   return (
-    <section className="py-16 px-4 max-w-7xl mx-auto space-y-12 bg-slate-50/50">
+    <section className="mt-136 sm:mt-0 py-16 px-4 max-w-7xl mx-auto space-y-12 bg-slate-50/50">
       
       {/* সেকশন হেডার */}
       <div className="text-center max-w-xl mx-auto space-y-2 border-b border-slate-200 pb-6">

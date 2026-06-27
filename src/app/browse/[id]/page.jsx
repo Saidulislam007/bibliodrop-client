@@ -459,7 +459,7 @@ export default function BookDetailsPage({ params }) {
                       <button
                         disabled={isProcessing}
                         onClick={handleDeliveryRequest}
-                        className="flex-1 bg-gray-600 hover:bg-gray-700 text-black font-bold text-xs py-3 px-4 rounded-xl shadow-md shadow-indigo-600/10 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-3 px-4 rounded-xl shadow-md shadow-indigo-600/10 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         <span>{isProcessing ? "Processing..." : "Confirm & Pay"}</span>
                         <FiArrowRight size={14} />
@@ -488,7 +488,7 @@ export default function BookDetailsPage({ params }) {
                     ) : (
                       <button
                         onClick={handleOpenDeliveryModal}
-                        className={`flex-1 min-w-[150px] font-semibold py-3 px-6 rounded-xl shadow-sm transition duration-200 flex justify-center items-center gap-2 text-white ${isSuccessModalOpen ? "bg-slate-800 hover:bg-slate-900" : "bg-amber-500 hover:bg-amber-600"}`}
+                        className={`flex-1 min-w-[150px] font-semibold py-3 px-6 rounded-xl shadow-sm transition duration-200 flex justify-center items-center gap-2 text-white ${isSuccessModalOpen ? "bg-amber-500 hover:bg-amber-600" : "bg-amber-500 hover:bg-amber-600"}`}
                       >
                         <FiTruck size={16} /> {isSuccessModalOpen ? "Close Payment Panel" : "Request Home Delivery"}
                       </button>
