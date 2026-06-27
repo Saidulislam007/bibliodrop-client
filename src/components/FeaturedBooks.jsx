@@ -104,86 +104,91 @@ export default function FeaturedBooks() {
           viewport={{ once: true, margin: "-100px" }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {books.map((book) => (
-            <motion.div 
-              key={book._id} 
-              variants={cardVariants}
-              whileHover={{ y: -6, transition: { duration: 0.2 } }} 
-              className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group"
-            >
-              
-              {/* 이미지 কন্টেইনার */}
-              <div className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden">
-                <img 
-                  src={book.image} 
-                  alt={book.title} 
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                
-                {/* ডেট ব্যাজ */}
-                <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-lg text-white font-bold text-[10px] flex items-center gap-1">
-                  <FiCalendar size={10} className="text-blue-400" />
-                  <span>{formatDate(book.dateAdded || book.publishedAt)}</span>
-                </div>
+          {books.map((book) => {
+            const isAvailable = book.stockQuantity > 0;
+            const price = typeof book.price === 'number' ? book.price : Number(book.price || 0);
+            const fee = typeof book.fee === 'number' ? book.fee : Number(book.fee || 0);
 
-                {/* স্ট্যাটাস ব্যাজ */}
-                <div className="absolute top-4 right-4 bg-emerald-500 px-2.5 py-1 rounded-lg text-white font-extrabold text-[9px] uppercase tracking-wider shadow-sm shadow-emerald-500/20">
-                  {book.stockQuantity > 0 ? "Available" : "Out of Stock"}
-                </div>
-              </div>
-
-              {/* টেক্সট কন্টেন্ট */}
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-wider font-black text-blue-600">
-                      {book.category || "General"}
-                    </span>
-                    <span className="text-xs font-black text-amber-500">
-                      ${book.price?.toFixed(0) || "0"}
-                    </span>
+            return (
+              <motion.div 
+                key={book._id} 
+                variants={cardVariants}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }} 
+                className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group"
+              >
+                {/* ইমেজ কন্টেইনার */}
+                <div className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden">
+                  <img 
+                    src={book.image || "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=500"} 
+                    alt={book.title} 
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  
+                  {/* ডেট ব্যাজ */}
+                  <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-lg text-white font-bold text-[10px] flex items-center gap-1">
+                    <FiCalendar size={10} className="text-blue-400" />
+                    <span>{formatDate(book.dateAdded || book.publishedAt)}</span>
                   </div>
-                  
-                  <h3 className="text-base font-black text-slate-900 tracking-tight leading-snug line-clamp-1 capitalize">
-                    {book.title}
-                  </h3>
-                  
-                  <p className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                    <FiUser size={12} /> By {book.author}
-                  </p>
-                  
-                  <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 pt-1">
-                    {book.description || "No description provided for this specific book node."}
-                  </p>
+
+                  {/* স্ট্যাটাস ব্যাজ */}
+                  <div className={`absolute top-4 right-4 px-2.5 py-1 rounded-lg text-white font-extrabold text-[9px] uppercase tracking-wider shadow-sm ${
+                    isAvailable ? "bg-emerald-500 shadow-emerald-500/20" : "bg-rose-500 shadow-rose-500/20"
+                  }`}>
+                    {isAvailable ? "Available" : "Out of Stock"}
+                  </div>
                 </div>
 
-                {/* ⚙️ বাটন অ্যাকশন সেকশন */}
-                <div className="flex items-center gap-2 pt-2 w-full">
-                  
-                  {/* 📦 Request Delivery: ক্লিক করলে সোজা Details পেজে নিয়ে যাবে ভাই */}
-                  <Link 
-                    href={`/books/${book._id}`}
-                    className={`flex-1 text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/10 transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap cursor-pointer ${
-                      book.stockQuantity <= 0 ? "pointer-events-none opacity-50 bg-slate-200 text-slate-400" : ""
-                    }`}
-                  >
-                    <FiTruck size={14} />
-                    <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
-                  </Link>
+                {/* টেক্সট কন্টেন্ট */}
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-wider font-black text-blue-600">
+                        {book.category || "General"}
+                      </span>
+                      <span className="text-xs font-black text-amber-500">
+                        ${price.toFixed(0)}
+                      </span>
+                    </div>
+                    
+                    <h3 className="text-base font-black text-slate-900 tracking-tight leading-snug line-clamp-1 capitalize">
+                      {book.title}
+                    </h3>
+                    
+                    <p className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                      <FiUser size={12} /> By {book.author || "Unknown Author"}
+                    </p>
+                    
+                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 pt-1">
+                      {book.description || "No description provided for this specific book node."}
+                    </p>
+                  </div>
 
-                  {/* 👁️ View Icon: ক্লিক করলে এটিও Details পেজে নিয়ে যাবে ভাই */}
-                  <Link 
-                    href={`/books/${book._id}`}
-                    className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-xl transition-all active:scale-95 flex-shrink-0 cursor-pointer"
-                    title="View Book Details"
-                  >
-                    <FiEye size={15} />
-                  </Link>
+                  {/* বাটন অ্যাকশন সেকশন */}
+                  <div className="flex items-center gap-2 pt-2 w-full">
+                    {/* Request Delivery */}
+                    <Link 
+                      href={`/browse/${book._id}`}
+                      className={`flex-1 text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/10 transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap cursor-pointer ${
+                        !isAvailable ? "pointer-events-none opacity-50 bg-slate-200 text-slate-400 shadow-none" : ""
+                      }`}
+                    >
+                      <FiTruck size={14} />
+                      <span>Request Delivery (${fee.toFixed(2)})</span>
+                    </Link>
+
+                    {/* View Icon */}
+                    <Link 
+                      href={`/browse/${book._id}`}
+                      className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-xl transition-all active:scale-95 flex-shrink-0 cursor-pointer"
+                      title="View Book Details"
+                    >
+                      <FiEye size={15} />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-
-            </div>
-          ))}
+              </motion.div>
+            );
+          })}
         </motion.div>
       )}
 
@@ -195,7 +200,6 @@ export default function FeaturedBooks() {
           viewport={{ once: true }}
           className="text-center pt-4"
         >
-          {/* 🟢 ফিক্সড: href বদলে সরাসরি '/browse' রাউটে রিডাইরেক্ট করা হলো ভাই */}
           <Link 
             href="/browse" 
             className="inline-flex items-center justify-center min-w-[180px] px-6 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs tracking-wide transition-all shadow-sm active:scale-95"

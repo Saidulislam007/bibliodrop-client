@@ -16,7 +16,7 @@ export default function LibrarianLayout({ children }) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
-  // 🔒 লোডিং গেটওয়ে (লাইট মোড গ্রে থিম ভাই)
+  // 🔒 লোডিং গেটওয়ে
   if (isPending || !isMounted) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-700 font-sans">
@@ -25,7 +25,7 @@ export default function LibrarianLayout({ children }) {
     );
   }
 
-  // প্রটেকশন গেটওয়ে (Librarian বা Admin ছাড়া এক্সেস রিজেক্টেড - লাইট মোড)
+  // প্রটেকশন গেটওয়ে (Librarian বা Admin ছাড়া এক্সেস রিজেক্টেড)
   if (userRole !== "librarian" && userRole !== "admin") {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-center p-6 font-sans">
@@ -49,34 +49,37 @@ export default function LibrarianLayout({ children }) {
   ];
 
   return (
-    <div>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 flex items-center justify-around z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] rounded-t-2xl md:hidden lg:hidden">
-  {menuItems.map((item) => {
-    const isActive = pathname === item.href;
-    
-    return (
-      <Link key={item.name} href={item.href} className="flex-1 max-w-[80px] group">
-        <span className={`flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all duration-200 ${
-          isActive
-            ? "text-black scale-105"
-            : "text-slate-400 hover:text-slate-900"
-        }`}>
-          {/* একটিভ থাকলে আইকনটি কালো হবে এবং একটু পপ করবে ভাই */}
-          <span className={`transition-transform duration-200 ${isActive ? "text-black scale-110" : "text-slate-400 group-hover:scale-105"}`}>
-            {item.icon}
-          </span>
-          <span className="truncate max-w-full">{item.name.split(" ")[0]}</span> {/* নাম বড় হলে শুধু প্রথম শব্দ দেখাবে */}
-        </span>
-      </Link>
-    );
-  })}
-</nav>
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans overflow-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col md:flex-row font-sans relative">
       
-      {/* 🧭 বাম পাশের লাইব্রেরিয়ান সাইডবার (পিওর হোয়াইট থিম) */}
-      <aside className="w-64 bg-white border-r border-slate-200 p-5 flex flex-col gap-6 hidden lg:flex flex-shrink-0 min-h-screen sticky top-0 shadow-sm">
+      {/* 📱 ১. আপনার পছন্দের ফিক্সড মোবাইল নেভিগেশন বার (md স্ক্রিনের নিচে দেখাবে) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800/80 px-2 py-2 flex items-center justify-around z-50 shadow-[0_-4px_24px_rgba(0,0,0,0.4)] rounded-t-2xl md:hidden">
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href;
+          
+          return (
+            <Link key={item.name} href={item.href} className="flex-1 max-w-[80px] group cursor-pointer">
+              <span className={`flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all duration-200 ${
+                isActive ? "text-white scale-105" : "text-zinc-400 hover:text-zinc-200"
+              }`}>
+                
+                {/* একটিভ আইকন হাইলাইটার ভাই */}
+                <span className={`transition-transform duration-200 ${
+                  isActive ? "text-indigo-400 scale-110" : "text-zinc-400 group-hover:scale-105"
+                }`}>
+                  {item.icon}
+                </span>
+                
+                <span className="truncate max-w-full">{item.name.split(" ")[0]}</span>
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* 🖥️ ২. ডেস্কটপ ও ট্যাবলেট সাইডবার (md স্ক্রিন থেকে ভিজিবল হবে ভাই) */}
+      <aside className="w-64 bg-white border-r border-slate-200 p-5 flex flex-col gap-6 hidden md:flex flex-shrink-0 h-screen sticky top-0 shadow-sm">
         
-        {/* লাইব্রেরিয়ান প্রোফাইল কার্ড উইজেট - সফট শ্যাডো কম্বিনেশন ভাই */}
+        {/* লাইব্রেরিয়ান প্রোফাইল কার্ড */}
         <div className="bg-black border border-slate-200 rounded-2xl p-5 text-center flex flex-col items-center justify-center shadow-inner">
           <div className="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-3 text-slate-400 shadow-sm overflow-hidden">
             {session?.user?.image ? (
@@ -91,7 +94,7 @@ export default function LibrarianLayout({ children }) {
           <p className="text-[11px] text-slate-400 font-medium truncate max-w-full mt-0.5">
             {session?.user?.email || "james@heritagebooks.com"}
           </p>
-          <span className="mt-3 px-4 py-0.5 bg-indigo-50 border border-indigo-100 text-gray-600 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+          <span className="mt-3 px-4 py-0.5 bg-indigo-50 border border-indigo-100 text-gray-600 text-[10px] font-extrabold rounded-full uppercase tracking-wider对">
             {userRole}
           </span>
         </div>
@@ -115,12 +118,12 @@ export default function LibrarianLayout({ children }) {
         </nav>
       </aside>
 
-      {/* 🖥️ ডানপাশের ডাইনামিক কন্টেন্ট এরিয়া (লাইট মোড মেইন রেন্ডারার) */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-full h-screen bg-slate-50">
+      {/* 🖥️ ৩. মেইন ডাইনামিক কন্টেন্ট এরিয়া */}
+      {/* মোবাইলের বটম বারের জন্য pb-24 এবং ডেস্কটপে সাধারণ প্যাডিং হ্যান্ডেল করা হয়েছে */}
+      <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-full min-h-screen pb-24 md:pb-8 bg-slate-50">
         {children}
       </main>
 
-    </div>
     </div>
   );
 }

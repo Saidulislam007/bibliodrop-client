@@ -62,61 +62,31 @@ export default function UserLayout({ children }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans relative">
 
-      {/* 📱 ১. রেস্পনসিভ টপ হেডার বার (যা আপনার স্ক্রিনশটের মতো উপরে ফিক্সড থাকবে ভাই) */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-zinc-950 border-b border-zinc-800 px-4 flex items-center justify-between z-50 md:hidden shadow-md">
-        <div className="flex items-center gap-2">
-          {/* আপনার লোগো আইকন */}
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-            B
-          </div>
-          <span className="text-white font-black tracking-tight text-base">BiblioDrop</span>
-        </div>
-
-        {/* 🍔 হামবার্গার বা ক্লোজ বাটন টগল */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 text-zinc-400 hover:text-white transition-colors focus:outline-none"
-        >
-          {isMobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
-        </button>
-      </header>
-
-      {/* 📱 ২. মোবাইল টপ ড্রপডাউন মেনু (ক্লিক করলে স্মুথলি নিচ দিয়ে নেমে আসবে ভাই) */}
-      {isMobileMenuOpen && (
-        <div className="fixed top-16 left-0 right-0 bg-zinc-950 border-b border-zinc-800 z-40 md:hidden p-4 shadow-xl animate-in fade-in slide-in-from-top-5 duration-200">
-          <div className="space-y-1">
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.name} href={item.href} className="block">
-                  <span className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all ${
-                    isActive
-                      ? "bg-indigo-600 text-white"
-                      : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
-                  }`}>
-                    {item.icon} {item.name}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
+      <nav className="fixed bottom-0 left-0 right-0 bg-zinc-950 border-t border-zinc-800/80 px-2 py-2 flex items-center justify-around z-50 shadow-[0_-4px_24px_rgba(0,0,0,0.4)] rounded-t-2xl md:hidden">
+  {menuItems.map((item) => {
+    const isActive = pathname === item.href;
+    
+    return (
+      <Link key={item.name} href={item.href} className="flex-1 max-w-[80px] group cursor-pointer">
+        <span className={`flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all duration-200 ${
+          isActive
+            ? "text-white scale-105" // 🟢 ফিক্সড: কালো ব্যাকগ্রাউন্ডে টেক্সট সাদা করা হলো
+            : "text-zinc-400 hover:text-zinc-200"
+        }`}>
           
-          {/* ইউজার ডেমোগ্রাফিক ইনফো ড্রপডাউনের নিচে */}
-          <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex-shrink-0">
-              {session?.user?.image ? (
-                <img src={session.user.image} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <FiUser size={16} className="text-zinc-500 m-auto mt-1.5" />
-              )}
-            </div>
-            <div className="truncate">
-              <p className="text-xs font-bold text-white truncate">{session?.user?.name || "Saidul Islam"}</p>
-              <p className="text-[10px] text-zinc-500 truncate">{session?.user?.email}</p>
-            </div>
-          </div>
-        </div>
-      )}
+          {/* একটিভ থাকলে আইকনটি হাইলাইট হবে ভাই */}
+          <span className={`transition-transform duration-200 ${
+            isActive ? "text-indigo-400 scale-110" : "text-zinc-400 group-hover:scale-105" // 🟢 ফিক্সড: একটিভ আইকনকে চমৎকার ইনডিগো কালার দেওয়া হলো
+          }`}>
+            {item.icon}
+          </span>
+          
+          <span className="truncate max-w-full">{item.name.split(" ")[0]}</span>
+        </span>
+      </Link>
+    );
+  })}
+</nav>
 
       <div className="flex flex-1 flex-col md:flex-row relative w-full">
 
@@ -168,25 +138,6 @@ export default function UserLayout({ children }) {
         </main>
 
       </div>
-
-      {/* 📱 ৫. মোবাইল ডিভাইসের জন্য নিচের প্রিমিয়াম বটম বার */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 flex items-center justify-around z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] rounded-t-2xl md:hidden">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link key={item.name} href={item.href} className="flex-1 max-w-[75px] group">
-              <span className={`flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl text-[10px] font-bold tracking-tight transition-all duration-200 ${
-                isActive ? "text-black scale-105" : "text-slate-400 hover:text-slate-900"
-              }`}>
-                <span className={`transition-transform duration-200 ${isActive ? "text-black scale-110" : "text-slate-400 group-hover:scale-105"}`}>
-                  {item.icon}
-                </span>
-                <span className="truncate max-w-full text-[9px] sm:text-[10px]">{item.name.split(" ")[0]}</span>
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
 
     </div>
   );

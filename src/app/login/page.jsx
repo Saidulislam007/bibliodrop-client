@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // ✅ ১. useRouter ইম্পোর্ট যোগ করা হয়েছে
+import { useRouter } from "next/navigation"; 
 import { motion, AnimatePresence } from "framer-motion"; 
 import { FiEye, FiEyeOff, FiAlertCircle, FiCheckCircle } from "react-icons/fi"; 
+import { FcGoogle } from "react-icons/fc"; // 🟢 ১. FcGoogle আইকনটি ইম্পোর্ট করা হলো
 
 import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
-  const router = useRouter(); // ✅ ২. রাউটার ইনিশিয়েট করা হয়েছে (এরর সমাধান)
+  const router = useRouter(); 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -46,13 +47,11 @@ export default function LoginPage() {
       
       showNotification("🎉 Login successful! Welcome back.", "success");
 
-      // ফর্ম হার্ড রিসেট এবং স্টেট খালি করা হয়েছে যাতে ইনপুট ফিল্ডে ডেটা আটকে না থাকে
       e.target.reset();
       setEmail("");
       setPassword("");
       setIsLoading(false);
 
-      // রিডাইরেক্ট লজিক (এখন router ডিফাইন থাকায় নিখুঁত কাজ করবে)
       router.push("/"); 
       router.refresh();
 
@@ -132,8 +131,21 @@ export default function LoginPage() {
       {/* ডান কলাম: রেসপনসিভ লগইন বক্স */}
       <div className="col-span-1 lg:col-span-6 flex flex-col justify-center items-center px-4 sm:px-8 py-12 bg-white lg:bg-black text-slate-900 lg:text-white transition-colors duration-300">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="w-full max-w-[360px]">
+          
           <div className="mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950 lg:text-white tracking-tight">Log in to your account</h2>
+          </div>
+
+          {/* 🟢 ২. এখানে Google Sign-In বাটনটি নিখুঁতভাবে যুক্ত করা হলো */}
+          <div className="space-y-2.5 mb-5">
+            <button 
+              type="button" 
+              onClick={handleGoogleSignUp} 
+              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-zinc-100 text-zinc-900 font-bold rounded-xl text-sm transition-all border border-gray-200 lg:border-none shadow-sm cursor-pointer"
+            >
+              <FcGoogle size={18} /> 
+              <span>Sign In with Google</span>
+            </button>
           </div>
 
           <div className="relative flex items-center justify-center my-6">
@@ -151,8 +163,8 @@ export default function LoginPage() {
                 {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
               </button>
             </div>
-            <button type="submit" className="w-full flex items-center justify-center gap-2 py-3 bg-[#ff3366] hover:bg-[#e62e5c] text-white font-bold rounded-full shadow-md transition-all active:scale-[0.98] disabled:opacity-70 mt-6">
-              Log in
+            <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 py-3 bg-[#ff3366] hover:bg-[#e62e5c] text-white font-bold rounded-full shadow-md transition-all active:scale-[0.98] disabled:opacity-70 mt-6 cursor-pointer">
+              {isLoading ? "Logging in..." : "Log in"}
             </button>
           </form>
 
