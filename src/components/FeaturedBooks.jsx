@@ -112,7 +112,7 @@ export default function FeaturedBooks() {
               className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group"
             >
               
-              {/* ইমেজ কন্টেইনার */}
+              {/* 이미지 কন্টেইনার */}
               <div className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden">
                 <img 
                   src={book.image} 
@@ -157,27 +157,24 @@ export default function FeaturedBooks() {
                   </p>
                 </div>
 
-                {/* ⚙️ বাটন অ্যাকশন রেন্ডার */}
+                {/* ⚙️ বাটন অ্যাকশন সেকশন */}
                 <div className="flex items-center gap-2 pt-2 w-full">
                   
-                  {/* 🟢 ফিক্সড: Request Delivery বাটনে ক্লিক করলে এখন সরাসরি ডিটেইলস পেজে নিয়ে যাবে ভাই */}
+                  {/* 📦 Request Delivery: ক্লিক করলে সোজা Details পেজে নিয়ে যাবে ভাই */}
                   <Link 
                     href={`/books/${book._id}`}
-                    className="flex-1"
+                    className={`flex-1 text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/10 transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap cursor-pointer ${
+                      book.stockQuantity <= 0 ? "pointer-events-none opacity-50 bg-slate-200 text-slate-400" : ""
+                    }`}
                   >
-                    <button 
-                      disabled={book.stockQuantity <= 0}
-                      className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/10 transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap"
-                    >
-                      <FiTruck size={14} />
-                      <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
-                    </button>
+                    <FiTruck size={14} />
+                    <span>Request Delivery (${book.fee?.toFixed(2) || "0.00"})</span>
                   </Link>
 
-                  {/* 👁️ 🟢 ফিক্সড: ডিটেইলস আইকনে ক্লিক করলেও ডিটেইলস পেজে যাবে ভাই */}
+                  {/* 👁️ View Icon: ক্লিক করলে এটিও Details পেজে নিয়ে যাবে ভাই */}
                   <Link 
                     href={`/books/${book._id}`}
-                    className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-xl transition-all active:scale-95 flex-shrink-0"
+                    className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-900 rounded-xl transition-all active:scale-95 flex-shrink-0 cursor-pointer"
                     title="View Book Details"
                   >
                     <FiEye size={15} />
@@ -185,7 +182,7 @@ export default function FeaturedBooks() {
                 </div>
               </div>
 
-            </motion.div>
+            </div>
           ))}
         </motion.div>
       )}
@@ -198,8 +195,9 @@ export default function FeaturedBooks() {
           viewport={{ once: true }}
           className="text-center pt-4"
         >
+          {/* 🟢 ফিক্সড: href বদলে সরাসরি '/browse' রাউটে রিডাইরেক্ট করা হলো ভাই */}
           <Link 
-            href="/books" 
+            href="/browse" 
             className="inline-flex items-center justify-center min-w-[180px] px-6 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs tracking-wide transition-all shadow-sm active:scale-95"
           >
             See More Books
